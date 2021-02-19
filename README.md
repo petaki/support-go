@@ -1,5 +1,8 @@
 # Support Go
 
+[![Build Status](https://github.com/petaki/support-go/workflows/tests/badge.svg)](https://github.com/petaki/support-go/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](LICENSE.md)
+
 Utility packages for Go.
 
 ## Installation
