@@ -6,6 +6,7 @@ import (
 	"fmt"
 )
 
+// Command type.
 type Command struct {
 	Name       string
 	Usage      string
@@ -14,6 +15,7 @@ type Command struct {
 	flagSet    *flag.FlagSet
 }
 
+// FlagSet function.
 func (c *Command) FlagSet() *flag.FlagSet {
 	if c.flagSet == nil {
 		c.flagSet = flag.NewFlagSet(c.Name, flag.ExitOnError)
@@ -22,6 +24,7 @@ func (c *Command) FlagSet() *flag.FlagSet {
 	return c.flagSet
 }
 
+// Parse function.
 func (c *Command) Parse(arguments []string) ([]string, error) {
 	c.FlagSet().Parse(arguments)
 
@@ -32,6 +35,7 @@ func (c *Command) Parse(arguments []string) ([]string, error) {
 	return c.FlagSet().Args(), nil
 }
 
+// PrintHelp function.
 func (c *Command) PrintHelp(group *Group) int {
 	fmt.Println(Yellow("Usage:"))
 

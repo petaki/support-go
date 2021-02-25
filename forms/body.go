@@ -9,6 +9,7 @@ import (
 	"strings"
 )
 
+// DecodeBody function.
 func DecodeBody(w http.ResponseWriter, r *http.Request, dst interface{}) error {
 	if r.Header.Get("Content-Type") != "" {
 		value := r.Header.Get("Content-Type")

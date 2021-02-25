@@ -11,11 +11,13 @@ import (
 	"strings"
 )
 
+// Mix type.
 type Mix struct {
 	url       string
 	manifests map[string]map[string]string
 }
 
+// New function.
 func New(url string) *Mix {
 	m := new(Mix)
 	m.url = url
@@ -24,6 +26,7 @@ func New(url string) *Mix {
 	return m
 }
 
+// Mix function.
 func (m *Mix) Mix(path, manifestDirectory string) (string, error) {
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
@@ -81,6 +84,7 @@ func (m *Mix) Mix(path, manifestDirectory string) (string, error) {
 	return m.url + manifestDirectory + manifest[path], nil
 }
 
+// Hash function.
 func (m *Mix) Hash(manifestDirectory string) (string, error) {
 	if manifestDirectory != "" && !strings.HasPrefix(manifestDirectory, "/") {
 		manifestDirectory = "/" + manifestDirectory

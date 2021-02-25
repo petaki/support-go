@@ -6,12 +6,14 @@ import (
 	"strings"
 )
 
+// App type.
 type App struct {
 	Name    string
 	Version string
 	Groups  []*Group
 }
 
+// Execute function.
 func (a *App) Execute() {
 	if len(os.Args) > 1 {
 		for _, group := range a.Groups {
@@ -32,6 +34,7 @@ func (a *App) Execute() {
 	os.Exit(a.PrintHelp())
 }
 
+// PrintHelp function.
 func (a *App) PrintHelp() int {
 	fmt.Println(Green(a.Name) + " version " + Yellow(a.Version))
 	fmt.Println()
