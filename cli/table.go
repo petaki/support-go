@@ -5,11 +5,13 @@ import (
 	"strings"
 )
 
+// Table type.
 type Table struct {
 	Headers []string
 	Rows    [][]string
 }
 
+// Create function.
 func (t *Table) Create() []string {
 	width := make([]int, len(t.Headers))
 
@@ -53,6 +55,7 @@ func (t *Table) Create() []string {
 	return table
 }
 
+// Print function.
 func (t *Table) Print() int {
 	for _, tr := range t.Create() {
 		fmt.Println(tr)
@@ -64,7 +67,7 @@ func (t *Table) Print() int {
 func (t *Table) createBorder(width []int) string {
 	var border string
 
-	for i, _ := range width {
+	for i := range width {
 		if i == 0 {
 			border += "+-"
 		} else {

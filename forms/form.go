@@ -7,14 +7,19 @@ import (
 	"strings"
 )
 
-var UsernameRegex = regexp.MustCompile("^[a-zA-Z0-9\\.\\-_]+$")
-var EmailRegex = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+// UsernameRegexp regexp.
+var UsernameRegexp = regexp.MustCompile("^[a-zA-Z0-9\\.\\-_]+$")
 
+// EmailRegexp regexp.
+var EmailRegexp = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+
+// Form type.
 type Form struct {
 	Data   map[string]interface{}
 	Errors Bag
 }
 
+// New function.
 func New(data map[string]interface{}) *Form {
 	return &Form{
 		data,
@@ -22,6 +27,7 @@ func New(data map[string]interface{}) *Form {
 	}
 }
 
+// NewFromRequest function.
 func NewFromRequest(w http.ResponseWriter, r *http.Request) (*Form, error) {
 	var data map[string]interface{}
 
@@ -33,6 +39,7 @@ func NewFromRequest(w http.ResponseWriter, r *http.Request) (*Form, error) {
 	return New(data), nil
 }
 
+// Required function.
 func (f *Form) Required(fields ...string) {
 	for _, field := range fields {
 		if f.Data[field] == nil || strings.TrimSpace(fmt.Sprintf("%v", f.Data[field])) == "" {
@@ -41,6 +48,7 @@ func (f *Form) Required(fields ...string) {
 	}
 }
 
+// MatchesPattern function.
 func (f *Form) MatchesPattern(field string, pattern *regexp.Regexp) {
 	if f.Data[field] == nil {
 		return
@@ -58,6 +66,7 @@ func (f *Form) MatchesPattern(field string, pattern *regexp.Regexp) {
 	}
 }
 
+// Min function.
 func (f *Form) Min(field string, min float64) {
 	if f.Data[field] == nil {
 		return
@@ -79,6 +88,7 @@ func (f *Form) Min(field string, min float64) {
 	}
 }
 
+// Max function.
 func (f *Form) Max(field string, max float64) {
 	if f.Data[field] == nil {
 		return
@@ -100,6 +110,7 @@ func (f *Form) Max(field string, max float64) {
 	}
 }
 
+// IsValid function.
 func (f *Form) IsValid() bool {
 	return len(f.Errors) == 0
 }

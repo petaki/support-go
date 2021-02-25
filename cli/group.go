@@ -5,12 +5,14 @@ import (
 	"strings"
 )
 
+// Group type.
 type Group struct {
 	Name     string
 	Usage    string
 	Commands []*Command
 }
 
+// PrintHelp function.
 func (g *Group) PrintHelp() int {
 	fmt.Println(Yellow("Available commands:"))
 
