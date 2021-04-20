@@ -8,9 +8,10 @@ import (
 
 // App type.
 type App struct {
-	Name    string
-	Version string
-	Groups  []*Group
+	Name       string
+	Version    string
+	TryDefault bool
+	Groups     []*Group
 }
 
 // Execute function.
@@ -28,6 +29,13 @@ func (a *App) Execute() {
 
 				os.Exit(group.PrintHelp())
 			}
+		}
+
+		if a.TryDefault && len(a.Groups) > 0 && len(a.Groups[0].Commands) > 0 {
+			group := a.Groups[0]
+			command := group.Commands[0]
+
+			os.Exit(command.HandleFunc(group, command, os.Args[1:]))
 		}
 	}
 
