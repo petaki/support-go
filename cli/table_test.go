@@ -1,8 +1,6 @@
 package cli
 
-import (
-	"testing"
-)
+import "testing"
 
 func TestTableCreate(t *testing.T) {
 	tests := []struct {
