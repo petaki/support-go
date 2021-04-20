@@ -20,7 +20,7 @@ func TestColor(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.expected != tt.expected {
+			if tt.expected != tt.got {
 				t.Errorf("expected: %v, got: %v", tt.expected, tt.got)
 			}
 		})
