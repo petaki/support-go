@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 )
@@ -29,7 +28,7 @@ func (c *Command) Parse(arguments []string) ([]string, error) {
 	c.FlagSet().Parse(arguments)
 
 	if len(c.FlagSet().Args()) != len(c.Arguments) {
-		return arguments, errors.New("missing arguments")
+		return arguments, ErrMissingArguments
 	}
 
 	return c.FlagSet().Args(), nil
@@ -50,5 +49,11 @@ func (c *Command) PrintHelp(group *Group) int {
 	fmt.Println(Yellow("Available flags:"))
 	c.FlagSet().PrintDefaults()
 
-	return 0
+	return Success
+}
+
+func (c *Command) PrintError(err error) int {
+	fmt.Println(Red("ERROR\t") + err.Error())
+
+	return Failure
 }

@@ -61,7 +61,7 @@ func (t *Table) Print() int {
 		fmt.Println(tr)
 	}
 
-	return 0
+	return Success
 }
 
 func (t *Table) createBorder(width []int) string {
