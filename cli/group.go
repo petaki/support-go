@@ -30,5 +30,5 @@ func (g *Group) PrintHelp() int {
 		fmt.Println("  " + Green(command.Name) + strings.Repeat(" ", max-len(command.Name)) + command.Usage)
 	}
 
-	return 0
+	return Success
 }

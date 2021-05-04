@@ -65,5 +65,5 @@ func (a *App) PrintHelp() int {
 		fmt.Println("  " + Green(group.Name) + strings.Repeat(" ", max-len(group.Name)) + group.Usage)
 	}
 
-	return 0
+	return Success
 }
