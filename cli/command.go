@@ -54,7 +54,7 @@ func (c *Command) PrintHelp(group *Group) int {
 
 // PrintError function.
 func (c *Command) PrintError(err error) int {
-	fmt.Println(Red("ERROR\t") + err.Error())
+	ErrorLog.Print(err)
 
 	return Failure
 }
