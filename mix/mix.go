@@ -15,16 +15,16 @@ import (
 type Mix struct {
 	url         string
 	publicPath  string
-	hotProxyUrl string
+	hotProxyURL string
 	manifests   map[string]map[string]string
 }
 
 // New function.
-func New(url, publicPath, hotProxyUrl string) *Mix {
+func New(url, publicPath, hotProxyURL string) *Mix {
 	m := new(Mix)
 	m.url = url
 	m.publicPath = publicPath
-	m.hotProxyUrl = hotProxyUrl
+	m.hotProxyURL = hotProxyURL
 	m.manifests = make(map[string]map[string]string)
 
 	return m
@@ -42,8 +42,8 @@ func (m *Mix) Mix(path, manifestDirectory string) (string, error) {
 
 	_, err := os.Stat(m.publicPath + manifestDirectory + "/hot")
 	if os.IsExist(err) {
-		if m.hotProxyUrl != "" {
-			return m.hotProxyUrl + path, nil
+		if m.hotProxyURL != "" {
+			return m.hotProxyURL + path, nil
 		}
 
 		content, err := ioutil.ReadFile(m.publicPath + manifestDirectory + "/hot")
