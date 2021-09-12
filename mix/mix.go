@@ -13,14 +13,18 @@ import (
 
 // Mix type.
 type Mix struct {
-	url       string
-	manifests map[string]map[string]string
+	url         string
+	publicPath  string
+	hotProxyUrl string
+	manifests   map[string]map[string]string
 }
 
 // New function.
-func New(url string) *Mix {
+func New(url, publicPath, hotProxyUrl string) *Mix {
 	m := new(Mix)
 	m.url = url
+	m.publicPath = publicPath
+	m.hotProxyUrl = hotProxyUrl
 	m.manifests = make(map[string]map[string]string)
 
 	return m
@@ -36,9 +40,13 @@ func (m *Mix) Mix(path, manifestDirectory string) (string, error) {
 		manifestDirectory = "/" + manifestDirectory
 	}
 
-	_, err := os.Stat("./public" + manifestDirectory + "/hot")
+	_, err := os.Stat(m.publicPath + manifestDirectory + "/hot")
 	if os.IsExist(err) {
-		content, err := ioutil.ReadFile("./public" + manifestDirectory + "/hot")
+		if m.hotProxyUrl != "" {
+			return m.hotProxyUrl + path, nil
+		}
+
+		content, err := ioutil.ReadFile(m.publicPath + manifestDirectory + "/hot")
 		if err != nil {
 			return "", err
 		}
@@ -52,7 +60,7 @@ func (m *Mix) Mix(path, manifestDirectory string) (string, error) {
 		return "//localhost:8080" + path, nil
 	}
 
-	manifestPath := "./public" + manifestDirectory + "/mix-manifest.json"
+	manifestPath := m.publicPath + manifestDirectory + "/mix-manifest.json"
 
 	if _, ok := m.manifests[manifestPath]; !ok {
 		_, err := os.Stat(manifestPath)
@@ -90,7 +98,7 @@ func (m *Mix) Hash(manifestDirectory string) (string, error) {
 		manifestDirectory = "/" + manifestDirectory
 	}
 
-	manifestPath := "./public" + manifestDirectory + "/mix-manifest.json"
+	manifestPath := m.publicPath + manifestDirectory + "/mix-manifest.json"
 
 	_, err := os.Stat(manifestPath)
 	if os.IsNotExist(err) {
@@ -104,6 +112,11 @@ func (m *Mix) Hash(manifestDirectory string) (string, error) {
 
 	defer file.Close()
 
+	return m.HashFromFile(file)
+}
+
+// HashFromFile function.
+func (m *Mix) HashFromFile(file io.Reader) (string, error) {
 	hash := md5.New()
 	if _, err := io.Copy(hash, file); err != nil {
 		return "", err
