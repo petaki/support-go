@@ -4,5 +4,5 @@ import "errors"
 
 var (
 	// ErrMissingArguments error.
-	ErrMissingArguments = errors.New("missing arguments")
+	ErrMissingArguments = errors.New("cli: missing arguments")
 )

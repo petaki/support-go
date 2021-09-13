@@ -3,9 +3,9 @@ package mix
 import (
 	"crypto/md5"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -32,13 +32,8 @@ func New(url, publicPath, hotProxyURL string) *Mix {
 
 // Mix function.
 func (m *Mix) Mix(path, manifestDirectory string) (string, error) {
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
-
-	if manifestDirectory != "" && !strings.HasPrefix(manifestDirectory, "/") {
-		manifestDirectory = "/" + manifestDirectory
-	}
+	path = m.pathPrefix(path)
+	manifestDirectory = m.pathPrefix(manifestDirectory)
 
 	_, err := os.Stat(m.publicPath + manifestDirectory + "/hot")
 	if os.IsExist(err) {
@@ -60,12 +55,12 @@ func (m *Mix) Mix(path, manifestDirectory string) (string, error) {
 		return "//localhost:8080" + path, nil
 	}
 
-	manifestPath := m.publicPath + manifestDirectory + "/mix-manifest.json"
+	manifestPath := m.publicPath + m.manifestPath(manifestDirectory)
 
 	if _, ok := m.manifests[manifestPath]; !ok {
 		_, err := os.Stat(manifestPath)
 		if os.IsNotExist(err) {
-			return "", errors.New("mix: the mix manifest does not exist")
+			return "", ErrManifestNotExist
 		}
 
 		content, err := ioutil.ReadFile(manifestPath)
@@ -94,15 +89,11 @@ func (m *Mix) Mix(path, manifestDirectory string) (string, error) {
 
 // Hash function.
 func (m *Mix) Hash(manifestDirectory string) (string, error) {
-	if manifestDirectory != "" && !strings.HasPrefix(manifestDirectory, "/") {
-		manifestDirectory = "/" + manifestDirectory
-	}
-
-	manifestPath := m.publicPath + manifestDirectory + "/mix-manifest.json"
+	manifestPath := m.publicPath + m.manifestPath(m.pathPrefix(manifestDirectory))
 
 	_, err := os.Stat(manifestPath)
 	if os.IsNotExist(err) {
-		return "", errors.New("mix: the mix manifest does not exist")
+		return "", ErrManifestNotExist
 	}
 
 	file, err := os.Open(manifestPath)
@@ -112,15 +103,38 @@ func (m *Mix) Hash(manifestDirectory string) (string, error) {
 
 	defer file.Close()
 
-	return m.HashFromFile(file)
+	return m.hashFromFile(file)
 }
 
-// HashFromFile function.
-func (m *Mix) HashFromFile(file io.Reader) (string, error) {
+// HashFromFS function.
+func (m *Mix) HashFromFS(manifestDirectory string, staticFS fs.FS) (string, error) {
+	file, err := staticFS.Open(m.manifestPath(manifestDirectory))
+	if err != nil {
+		return "", err
+	}
+
+	defer file.Close()
+
+	return m.hashFromFile(file)
+}
+
+func (m *Mix) hashFromFile(file io.Reader) (string, error) {
 	hash := md5.New()
 	if _, err := io.Copy(hash, file); err != nil {
 		return "", err
 	}
 
 	return fmt.Sprintf("%x", hash.Sum(nil)), nil
+}
+
+func (m *Mix) manifestPath(manifestDirectory string) string {
+	return manifestDirectory + "/mix-manifest.json"
+}
+
+func (m *Mix) pathPrefix(path string) string {
+	if path != "" && !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	return path
 }
