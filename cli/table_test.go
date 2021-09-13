@@ -2,7 +2,7 @@ package cli
 
 import "testing"
 
-func TestTableCreate(t *testing.T) {
+func TestTable_Create(t *testing.T) {
 	tests := []struct {
 		name     string
 		expected []string
