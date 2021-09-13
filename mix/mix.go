@@ -108,7 +108,7 @@ func (m *Mix) Hash(manifestDirectory string) (string, error) {
 
 // HashFromFS function.
 func (m *Mix) HashFromFS(manifestDirectory string, staticFS fs.FS) (string, error) {
-	file, err := staticFS.Open(m.manifestPath(manifestDirectory))
+	file, err := staticFS.Open(strings.TrimPrefix(m.manifestPath(manifestDirectory), "/"))
 	if err != nil {
 		return "", err
 	}
