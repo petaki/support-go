@@ -25,9 +25,12 @@ func (c *Command) FlagSet() *flag.FlagSet {
 
 // Parse function.
 func (c *Command) Parse(arguments []string) ([]string, error) {
-	c.FlagSet().Parse(arguments)
+	err := c.FlagSet().Parse(arguments)
+	if err != nil {
+		return nil, err
+	}
 
-	if len(c.FlagSet().Args()) != len(c.Arguments) {
+	if len(c.FlagSet().Args()) < len(c.Arguments) {
 		return arguments, ErrMissingArguments
 	}
 
