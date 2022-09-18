@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"strings"
 )
@@ -41,7 +40,7 @@ func (m *Mix) Mix(path, manifestDirectory string) (string, error) {
 			return m.hotProxyURL + path, nil
 		}
 
-		content, err := ioutil.ReadFile(m.publicPath + manifestDirectory + "/hot")
+		content, err := os.ReadFile(m.publicPath + manifestDirectory + "/hot")
 		if err != nil {
 			return "", err
 		}
@@ -63,7 +62,7 @@ func (m *Mix) Mix(path, manifestDirectory string) (string, error) {
 			return "", ErrManifestNotExist
 		}
 
-		content, err := ioutil.ReadFile(manifestPath)
+		content, err := os.ReadFile(manifestPath)
 		if err != nil {
 			return "", err
 		}
