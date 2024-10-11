@@ -16,18 +16,18 @@ type Group struct {
 func (g *Group) PrintHelp() int {
 	fmt.Println(Yellow("Available commands:"))
 
-	max := 0
+	maxLength := 0
 
 	for _, command := range g.Commands {
-		if max < len(command.Name) {
-			max = len(command.Name)
+		if maxLength < len(command.Name) {
+			maxLength = len(command.Name)
 		}
 	}
 
-	max += 2
+	maxLength += 2
 
 	for _, command := range g.Commands {
-		fmt.Println("  " + Green(command.Name) + strings.Repeat(" ", max-len(command.Name)) + command.Usage)
+		fmt.Println("  " + Green(command.Name) + strings.Repeat(" ", maxLength-len(command.Name)) + command.Usage)
 	}
 
 	return Success

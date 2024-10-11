@@ -51,18 +51,18 @@ func (a *App) PrintHelp() int {
 	fmt.Println()
 	fmt.Println(Yellow("Available groups:"))
 
-	max := 0
+	maxLength := 0
 
 	for _, group := range a.Groups {
-		if max < len(group.Name) {
-			max = len(group.Name)
+		if maxLength < len(group.Name) {
+			maxLength = len(group.Name)
 		}
 	}
 
-	max += 2
+	maxLength += 2
 
 	for _, group := range a.Groups {
-		fmt.Println("  " + Green(group.Name) + strings.Repeat(" ", max-len(group.Name)) + group.Usage)
+		fmt.Println("  " + Green(group.Name) + strings.Repeat(" ", maxLength-len(group.Name)) + group.Usage)
 	}
 
 	return Success
