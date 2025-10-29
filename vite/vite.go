@@ -73,17 +73,46 @@ func (v *Vite) Asset(asset string) (string, error) {
 		return v.hotAsset(asset)
 	}
 
-	err := v.ensureManifest()
+	chunk, err := v.chunk(asset)
 	if err != nil {
 		return "", err
 	}
 
-	chunk, ok := v.manifest[asset]
-	if !ok {
-		return "", fmt.Errorf("vite: unable to locate file: %v", asset)
+	return filepath.Join(v.buildDirectory, chunk["file"].(string)), nil
+}
+
+// CSS function.
+func (v *Vite) CSS(asset string) ([]string, error) {
+	if v.IsRunningHot() {
+		return nil, nil
 	}
 
-	return filepath.Join(v.buildDirectory, chunk["file"].(string)), nil
+	chunk, err := v.chunk(asset)
+	if err != nil {
+		return nil, err
+	}
+
+	var css []string
+
+	for _, current := range chunk["css"].([]string) {
+		css = append(css, filepath.Join(v.buildDirectory, current))
+	}
+
+	return css, nil
+}
+
+func (v *Vite) chunk(asset string) (map[string]interface{}, error) {
+	err := v.ensureManifest()
+	if err != nil {
+		return nil, err
+	}
+
+	chunk, ok := v.manifest[asset]
+	if !ok {
+		return nil, fmt.Errorf("vite: unable to locate file: %v", asset)
+	}
+
+	return chunk, nil
 }
 
 func (v *Vite) hotAsset(asset string) (string, error) {
