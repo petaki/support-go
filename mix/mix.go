@@ -1,13 +1,13 @@
 package mix
 
 import (
-	"crypto/md5"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/fs"
 	"os"
 	"strings"
+
+	"github.com/petaki/support-go/file"
 )
 
 // Mix type.
@@ -35,7 +35,7 @@ func (m *Mix) Mix(path, manifestDirectory string) (string, error) {
 	manifestDirectory = m.pathPrefix(manifestDirectory)
 
 	_, err := os.Stat(m.publicPath + manifestDirectory + "/hot")
-	if os.IsExist(err) {
+	if !os.IsNotExist(err) {
 		if m.hotProxyURL != "" {
 			return m.hotProxyURL + path, nil
 		}
@@ -90,40 +90,24 @@ func (m *Mix) Mix(path, manifestDirectory string) (string, error) {
 func (m *Mix) Hash(manifestDirectory string) (string, error) {
 	manifestPath := m.publicPath + m.manifestPath(m.pathPrefix(manifestDirectory))
 
-	_, err := os.Stat(manifestPath)
-	if os.IsNotExist(err) {
+	hash, err := file.Hash(manifestPath)
+	if err != nil {
 		return "", ErrManifestNotExist
 	}
 
-	file, err := os.Open(manifestPath)
-	if err != nil {
-		return "", err
-	}
-
-	defer file.Close()
-
-	return m.hashFromFile(file)
+	return hash, nil
 }
 
 // HashFromFS function.
-func (m *Mix) HashFromFS(manifestDirectory string, staticFS fs.FS) (string, error) {
-	file, err := staticFS.Open(strings.TrimPrefix(m.manifestPath(manifestDirectory), "/"))
+func (m *Mix) HashFromFS(manifestDirectory string, assetFS fs.FS) (string, error) {
+	manifestPath := strings.TrimPrefix(m.manifestPath(manifestDirectory), "/")
+
+	hash, err := file.HashFromFS(manifestPath, assetFS)
 	if err != nil {
-		return "", err
+		return "", ErrManifestNotExist
 	}
 
-	defer file.Close()
-
-	return m.hashFromFile(file)
-}
-
-func (m *Mix) hashFromFile(file io.Reader) (string, error) {
-	hash := md5.New()
-	if _, err := io.Copy(hash, file); err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("%x", hash.Sum(nil)), nil
+	return hash, nil
 }
 
 func (m *Mix) manifestPath(manifestDirectory string) string {
