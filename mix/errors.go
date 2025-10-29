@@ -4,5 +4,5 @@ import "errors"
 
 var (
 	// ErrManifestNotExist error.
-	ErrManifestNotExist = errors.New("mix: the mix manifest does not exist")
+	ErrManifestNotExist = errors.New("mix: the manifest does not exist")
 )
