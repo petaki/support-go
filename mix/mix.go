@@ -35,7 +35,7 @@ func (m *Mix) Mix(path, manifestDirectory string) (string, error) {
 	manifestDirectory = m.pathPrefix(manifestDirectory)
 
 	_, err := os.Stat(m.publicPath + manifestDirectory + "/hot")
-	if os.IsExist(err) {
+	if !os.IsNotExist(err) {
 		if m.hotProxyURL != "" {
 			return m.hotProxyURL + path, nil
 		}

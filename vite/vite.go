@@ -41,7 +41,7 @@ func NewWithFS(publicDirectory, buildDirectory string, assetFS fs.FS) *Vite {
 func (v *Vite) IsRunningHot() bool {
 	_, err := os.Stat(v.hotFile())
 
-	return os.IsExist(err)
+	return !os.IsNotExist(err)
 }
 
 // ManifestHash function.
