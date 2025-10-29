@@ -17,7 +17,7 @@ type Vite struct {
 	publicDirectory string
 	buildDirectory  string
 	assetFS         fs.FS
-	manifest        map[string]map[string]interface{}
+	manifest        Manifest
 }
 
 // New function.
@@ -78,7 +78,7 @@ func (v *Vite) Asset(asset string) (string, error) {
 		return "", err
 	}
 
-	return filepath.Join(v.buildDirectory, chunk["file"].(string)), nil
+	return filepath.Join(v.buildDirectory, chunk.File), nil
 }
 
 // CSS function.
@@ -94,14 +94,14 @@ func (v *Vite) CSS(asset string) ([]string, error) {
 
 	var css []string
 
-	for _, current := range chunk["css"].([]string) {
+	for _, current := range chunk.CSS {
 		css = append(css, filepath.Join(v.buildDirectory, current))
 	}
 
 	return css, nil
 }
 
-func (v *Vite) chunk(asset string) (map[string]interface{}, error) {
+func (v *Vite) chunk(asset string) (*ManifestChunk, error) {
 	err := v.ensureManifest()
 	if err != nil {
 		return nil, err
@@ -112,7 +112,7 @@ func (v *Vite) chunk(asset string) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("vite: unable to locate file: %v", asset)
 	}
 
-	return chunk, nil
+	return &chunk, nil
 }
 
 func (v *Vite) hotAsset(asset string) (string, error) {
