@@ -139,5 +139,9 @@ func (v *Vite) hotFile() string {
 }
 
 func (v *Vite) manifestPath() string {
+	if v.assetFS != nil {
+		return filepath.Join(v.buildDirectory, "manifest.json")
+	}
+
 	return filepath.Join(v.publicDirectory, v.buildDirectory, "manifest.json")
 }
