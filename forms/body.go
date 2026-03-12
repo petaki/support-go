@@ -10,7 +10,7 @@ import (
 )
 
 // DecodeBody function.
-func DecodeBody(w http.ResponseWriter, r *http.Request, dst interface{}) error {
+func DecodeBody(w http.ResponseWriter, r *http.Request, dst any) error {
 	if r.Header.Get("Content-Type") != "" {
 		value := r.Header.Get("Content-Type")
 
@@ -67,7 +67,7 @@ func DecodeBody(w http.ResponseWriter, r *http.Request, dst interface{}) error {
 				Msg:    "Request body must not be empty",
 			}
 
-		case err.Error() == "http: request body too large":
+		case errors.As(err, new(*http.MaxBytesError)):
 			return &Error{
 				Status: http.StatusRequestEntityTooLarge,
 				Msg:    "Request body must not be larger than 1MB",

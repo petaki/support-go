@@ -9,12 +9,12 @@ import (
 
 // Form type.
 type Form struct {
-	Data   map[string]interface{}
+	Data   map[string]any
 	Errors Bag
 }
 
 // New function.
-func New(data map[string]interface{}) *Form {
+func New(data map[string]any) *Form {
 	return &Form{
 		data,
 		map[string][]string{},
@@ -23,7 +23,7 @@ func New(data map[string]interface{}) *Form {
 
 // NewFromRequest function.
 func NewFromRequest(w http.ResponseWriter, r *http.Request) (*Form, error) {
-	var data map[string]interface{}
+	var data map[string]any
 
 	err := DecodeBody(w, r, &data)
 	if err != nil {

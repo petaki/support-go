@@ -2,6 +2,7 @@ package mix
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -35,7 +36,7 @@ func (m *Mix) Mix(path, manifestDirectory string) (string, error) {
 	manifestDirectory = m.pathPrefix(manifestDirectory)
 
 	_, err := os.Stat(m.publicPath + manifestDirectory + "/hot")
-	if !os.IsNotExist(err) {
+	if !errors.Is(err, fs.ErrNotExist) {
 		if m.hotProxyURL != "" {
 			return m.hotProxyURL + path, nil
 		}
@@ -58,7 +59,7 @@ func (m *Mix) Mix(path, manifestDirectory string) (string, error) {
 
 	if _, ok := m.manifests[manifestPath]; !ok {
 		_, err := os.Stat(manifestPath)
-		if os.IsNotExist(err) {
+		if errors.Is(err, fs.ErrNotExist) {
 			return "", ErrManifestNotExist
 		}
 
