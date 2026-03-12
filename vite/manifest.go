@@ -11,7 +11,6 @@ type ManifestChunk struct {
 	Assets         []string `json:"assets,omitempty"`
 	IsEntry        bool     `json:"isEntry,omitempty"`
 	Name           string   `json:"name,omitempty"`
-	Names          []string `json:"names,omitempty"`
 	IsDynamicEntry bool     `json:"isDynamicEntry,omitempty"`
 	Imports        []string `json:"imports,omitempty"`
 	DynamicImports []string `json:"dynamicImports,omitempty"`

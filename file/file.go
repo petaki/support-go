@@ -10,11 +10,6 @@ import (
 
 // Hash function.
 func Hash(filePath string) (string, error) {
-	_, err := os.Stat(filePath)
-	if err != nil {
-		return "", err
-	}
-
 	file, err := os.Open(filePath)
 	if err != nil {
 		return "", err
