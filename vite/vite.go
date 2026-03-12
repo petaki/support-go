@@ -78,7 +78,7 @@ func (v *Vite) Asset(asset string) (string, error) {
 		return "", err
 	}
 
-	return filepath.Join(v.buildDirectory, chunk.File), nil
+	return "/" + filepath.Join(v.buildDirectory, chunk.File), nil
 }
 
 // CSS function.
@@ -95,7 +95,7 @@ func (v *Vite) CSS(asset string) ([]string, error) {
 	var css []string
 
 	for _, current := range chunk.CSS {
-		css = append(css, filepath.Join(v.buildDirectory, current))
+		css = append(css, "/"+filepath.Join(v.buildDirectory, current))
 	}
 
 	return css, nil
