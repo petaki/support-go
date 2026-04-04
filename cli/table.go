@@ -65,25 +65,25 @@ func (t *Table) Print() int {
 }
 
 func (t *Table) createBorder(width []int) string {
-	var border string
+	var border strings.Builder
 
 	for i := range width {
 		if i == 0 {
-			border += "+-"
+			border.WriteString("+-")
 		} else {
-			border += "-"
+			border.WriteString("-")
 		}
 
-		border += strings.Repeat("-", width[i]+1)
+		border.WriteString(strings.Repeat("-", width[i]+1))
 
 		if i == len(width)-1 {
-			border += "+"
+			border.WriteString("+")
 		} else {
-			border += "-"
+			border.WriteString("-")
 		}
 	}
 
-	return border
+	return border.String()
 }
 
 func (t *Table) createEmpty(width []int) string {
@@ -100,15 +100,15 @@ func (t *Table) createEmpty(width []int) string {
 }
 
 func (t *Table) createRow(row []string, width []int) string {
-	var tr string
+	var tr strings.Builder
 
 	for i, col := range row {
 		if i == 0 {
-			tr += "|"
+			tr.WriteString("|")
 		}
 
-		tr += " " + col + strings.Repeat(" ", width[i]-len(col)) + " |"
+		tr.WriteString(" " + col + strings.Repeat(" ", width[i]-len(col)) + " |")
 	}
 
-	return tr
+	return tr.String()
 }
