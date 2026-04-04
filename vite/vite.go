@@ -82,15 +82,12 @@ func (v *Vite) Asset(asset string) (string, error) {
 }
 
 // InertiaSSRURL function.
-func (v *Vite) InertiaSSRURL() (string, error) {
-	content, err := os.ReadFile(v.hotFile())
-	if err != nil {
-		return "", err
+func (v *Vite) InertiaSSRURL(defaultURL string) (string, error) {
+	if v.IsRunningHot() {
+		return v.hotAsset("__inertia_ssr")
 	}
 
-	url := strings.TrimSpace(string(content))
-
-	return url + "/__inertia_ssr", nil
+	return defaultURL, nil
 }
 
 // CSS function.
