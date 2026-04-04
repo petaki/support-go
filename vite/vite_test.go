@@ -117,7 +117,7 @@ func TestManifestHashWithFS(t *testing.T) {
 				}
 			}
 
-			v := NewWithFS(dir, "build", mapFS)
+			v := New(dir, "build", mapFS)
 
 			hash, err := v.ManifestHash()
 			if err != tt.expectErr {
@@ -167,7 +167,7 @@ func TestAssetWithFS(t *testing.T) {
 		},
 	}
 
-	v := NewWithFS(dir, "build", mapFS)
+	v := New(dir, "build", mapFS)
 
 	got, err := v.Asset("resources/js/app.js")
 	if err != nil {
@@ -255,7 +255,7 @@ func TestCSSWithFS(t *testing.T) {
 		},
 	}
 
-	v := NewWithFS(dir, "build", mapFS)
+	v := New(dir, "build", mapFS)
 
 	got, err := v.CSS("resources/js/app.js")
 	if err != nil {

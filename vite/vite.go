@@ -21,18 +21,14 @@ type Vite struct {
 }
 
 // New function.
-func New(publicDirectory, buildDirectory string) *Vite {
+func New(publicDirectory, buildDirectory string, assetFS ...fs.FS) *Vite {
 	v := new(Vite)
 	v.publicDirectory = publicDirectory
 	v.buildDirectory = buildDirectory
 
-	return v
-}
-
-// NewWithFS function.
-func NewWithFS(publicDirectory, buildDirectory string, assetFS fs.FS) *Vite {
-	v := New(publicDirectory, buildDirectory)
-	v.assetFS = assetFS
+	if len(assetFS) > 0 && assetFS[0] != nil {
+		v.assetFS = assetFS[0]
+	}
 
 	return v
 }
