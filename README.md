@@ -175,7 +175,7 @@ err := forms.DecodeBody(w, r, &input)
 
 ## Vite
 
-The `vite` package integrates Go applications with [Vite](https://vitejs.dev/) for asset management and hot module replacement during development.
+The `vite` package integrates Go applications with [Vite](https://vitejs.dev/) for asset management and HMR.
 
 ```go
 import "github.com/petaki/support-go/vite"
