@@ -175,7 +175,7 @@ err := forms.DecodeBody(w, r, &input)
 
 ## Vite
 
-The `vite` package integrates Go applications with [Vite](https://vitejs.dev/) for asset management and hot module replacement during development.
+The `vite` package integrates Go applications with [Vite](https://vitejs.dev/) for asset management and HMR.
 
 ```go
 import "github.com/petaki/support-go/vite"
@@ -203,6 +203,37 @@ ssrURL, err := v.InertiaSSRURL("http://localhost:13714")
 ```
 
 When the Vite dev server is running (detected via a `public/hot` file), assets are served from the dev server URL. In production, assets are resolved from `manifest.json` in the build directory.
+
+### Usage with Inertia
+
+```go
+import (
+    "github.com/petaki/inertia-go"
+    "github.com/petaki/support-go/vite"
+)
+
+// Create Vite instance (use embedded FS in production)
+var viteManager *vite.Vite
+
+if debug {
+    viteManager = vite.New("static", "build")
+} else {
+    viteManager = vite.New("static", "build", staticFiles)
+}
+
+// Use manifest hash as Inertia asset version
+version, err := viteManager.ManifestHash()
+
+// Set up Inertia with shared Vite helpers
+inertiaManager := inertia.New(appURL, "app.gohtml", version, templates)
+inertiaManager.ShareFunc("isRunningHot", viteManager.IsRunningHot)
+inertiaManager.ShareFunc("asset", viteManager.Asset)
+inertiaManager.ShareFunc("css", viteManager.CSS)
+
+// Enable SSR
+ssrURL, err := viteManager.InertiaSSRURL("http://127.0.0.1:13714/render")
+inertiaManager.EnableSsr(ssrURL)
+```
 
 ## Reporting Issues
 
