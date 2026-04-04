@@ -3,6 +3,7 @@ package cli
 import (
 	"flag"
 	"fmt"
+	"strings"
 )
 
 // Command type.
@@ -41,13 +42,14 @@ func (c *Command) Parse(arguments []string) ([]string, error) {
 func (c *Command) PrintHelp(group *Group) int {
 	fmt.Println(Yellow("Usage:"))
 
-	usage := "  " + group.Name + " " + c.Name
+	var usage strings.Builder
+	usage.WriteString("  " + group.Name + " " + c.Name)
 
 	for _, argument := range c.Arguments {
-		usage += " <" + argument + ">"
+		usage.WriteString(" <" + argument + ">")
 	}
 
-	fmt.Println(usage)
+	fmt.Println(usage.String())
 	fmt.Println()
 	fmt.Println(Yellow("Available flags:"))
 	c.FlagSet().PrintDefaults()
