@@ -13,6 +13,13 @@ Install the package using the `go get` command:
 go get github.com/petaki/support-go
 ```
 
+## Packages
+
+- [CLI](#cli) - Framework for building command-line applications
+- [File](#file) - File hashing utilities
+- [Forms](#forms) - Form validation and JSON body decoding
+- [Vite](#vite) - Vite asset management and HMR integration
+
 ## CLI
 
 The `cli` package provides a framework for building command-line applications with structured command groups, colored output, ASCII tables, and pre-configured loggers.
