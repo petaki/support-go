@@ -235,6 +235,36 @@ ssrURL, err := viteManager.InertiaSSRURL("http://127.0.0.1:13714/render")
 inertiaManager.EnableSsr(ssrURL)
 ```
 
+The root template (`app.gohtml`) uses the shared Vite functions:
+
+```gohtml
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        {{ range (css "resources/js/app.ts") }}
+            <link rel="stylesheet" href="{{ . }}">
+        {{ end }}
+        {{ if .ssr }}
+            {{ raw .ssr.Head }}
+        {{ end }}
+    </head>
+    <body>
+        {{ if not .ssr }}
+            <script data-page="app" type="application/json">{{ marshal .page }}</script>
+            <div id="app"></div>
+        {{ else }}
+            {{ raw .ssr.Body }}
+        {{ end }}
+        {{ if isRunningHot }}
+            <script type="module" src="{{ asset "@vite/client" }}"></script>
+        {{ end }}
+        <script type="module" src="{{ asset "resources/js/app.ts" }}"></script>
+    </body>
+</html>
+```
+
 ## Reporting Issues
 
 If you are facing a problem with this package or found any bug, please open an issue on [GitHub](https://github.com/petaki/support-go/issues).
