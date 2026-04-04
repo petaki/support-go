@@ -72,6 +72,22 @@ func TestTable_Create(t *testing.T) {
 				},
 			}).Create(),
 		},
+		{
+			"Empty Table",
+			[]string{
+				"+----------------+",
+				"| Code | Message |",
+				"+----------------+",
+				"| No items       |",
+				"+----------------+",
+			},
+			(&Table{
+				Headers: []string{
+					"Code",
+					"Message",
+				},
+			}).Create(),
+		},
 	}
 
 	for _, tt := range tests {
