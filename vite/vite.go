@@ -81,6 +81,18 @@ func (v *Vite) Asset(asset string) (string, error) {
 	return "/" + filepath.Join(v.buildDirectory, chunk.File), nil
 }
 
+// InertiaSSRURL function.
+func (v *Vite) InertiaSSRURL() (string, error) {
+	content, err := os.ReadFile(v.hotFile())
+	if err != nil {
+		return "", err
+	}
+
+	url := strings.TrimSpace(string(content))
+
+	return url + "/__inertia_ssr", nil
+}
+
 // CSS function.
 func (v *Vite) CSS(asset string) ([]string, error) {
 	if v.IsRunningHot() {
