@@ -1,3 +1,5 @@
+<p align="center"><img src="https://github.com/user-attachments/assets/694768c3-9b69-40a7-b39b-60984ed88ba7" width="320" alt="Inertia GO"></p>
+
 # Support Go
 
 [![Build Status](https://github.com/petaki/support-go/workflows/tests/badge.svg)](https://github.com/petaki/support-go/actions)
