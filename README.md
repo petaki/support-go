@@ -274,6 +274,10 @@ The root template (`app.gohtml`) uses the shared Vite functions:
 </html>
 ```
 
+## Contributors
+
+- [@monstergron](https://github.com/monstergron) for logo ([ArtStation](https://www.artstation.com/danielmakaro))
+
 ## Reporting Issues
 
 If you are facing a problem with this package or found any bug, please open an issue on [GitHub](https://github.com/petaki/support-go/issues).
