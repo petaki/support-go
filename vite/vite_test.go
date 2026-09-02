@@ -254,6 +254,27 @@ func TestAssetWithFS(t *testing.T) {
 	}
 }
 
+func TestAssetWithTrailingSlashInHotFile(t *testing.T) {
+	dir := t.TempDir()
+
+	err := os.WriteFile(filepath.Join(dir, "hot"), []byte(testHotContent+"/\n"), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	v := New(dir, "build")
+
+	got, err := v.Asset("resources/js/app.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "http://localhost:5173/resources/js/app.js"
+	if expected != got {
+		t.Errorf("expected: %v, got: %v", expected, got)
+	}
+}
+
 func TestInertiaSSRURL(t *testing.T) {
 	tests := []struct {
 		name     string

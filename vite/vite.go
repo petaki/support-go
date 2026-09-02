@@ -140,9 +140,9 @@ func (v *Vite) hotAsset(asset string) (string, error) {
 		return "", err
 	}
 
-	devServerUrl := strings.TrimSpace(string(hotFileContent))
+	devServerURL := strings.TrimRight(strings.TrimSpace(string(hotFileContent)), "/")
 
-	return fmt.Sprintf("%s/%s", devServerUrl, asset), nil
+	return fmt.Sprintf("%s/%s", devServerURL, asset), nil
 }
 
 func (v *Vite) loadManifest() (Manifest, error) {
