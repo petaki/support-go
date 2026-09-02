@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"testing/fstest"
@@ -114,7 +115,7 @@ func TestManifestHash(t *testing.T) {
 			v := New(dir, "build")
 
 			hash, err := v.ManifestHash()
-			if err != tt.expectErr {
+			if !errors.Is(err, tt.expectErr) {
 				t.Errorf("expected error: %v, got: %v", tt.expectErr, err)
 			}
 
@@ -173,7 +174,7 @@ func TestManifestHashWithFS(t *testing.T) {
 			v := New(dir, "build", mapFS)
 
 			hash, err := v.ManifestHash()
-			if err != tt.expectErr {
+			if !errors.Is(err, tt.expectErr) {
 				t.Errorf("expected error: %v, got: %v", tt.expectErr, err)
 			}
 
@@ -198,7 +199,7 @@ func TestAssetWithoutManifest(t *testing.T) {
 			v := New(t.TempDir(), "build", tt.assetFS...)
 
 			_, err := v.Asset("resources/js/app.js")
-			if err != ErrManifestNotExist {
+			if !errors.Is(err, ErrManifestNotExist) {
 				t.Errorf("expected: %v, got: %v", ErrManifestNotExist, err)
 			}
 		})
@@ -251,6 +252,45 @@ func TestAssetWithFS(t *testing.T) {
 	expected := "/build/assets/app-abc123.js"
 	if expected != got {
 		t.Errorf("expected: %v, got: %v", expected, got)
+	}
+}
+
+func TestAssetWithTrailingSlashInHotFile(t *testing.T) {
+	dir := t.TempDir()
+
+	err := os.WriteFile(filepath.Join(dir, "hot"), []byte(testHotContent+"/\n"), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	v := New(dir, "build")
+
+	got, err := v.Asset("resources/js/app.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "http://localhost:5173/resources/js/app.js"
+	if expected != got {
+		t.Errorf("expected: %v, got: %v", expected, got)
+	}
+}
+
+func TestAssetNotExist(t *testing.T) {
+	v := createViteWithManifest(t, testManifestWithImports)
+
+	_, err := v.Asset("resources/js/missing.js")
+	if !errors.Is(err, ErrAssetNotExist) {
+		t.Fatalf("expected: %v, got: %v", ErrAssetNotExist, err)
+	}
+
+	if !strings.Contains(err.Error(), "resources/js/missing.js") {
+		t.Errorf("expected the asset name in: %v", err)
+	}
+
+	_, err = v.CSS("resources/js/missing.js")
+	if !errors.Is(err, ErrAssetNotExist) {
+		t.Errorf("expected: %v, got: %v", ErrAssetNotExist, err)
 	}
 }
 

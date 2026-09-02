@@ -59,7 +59,7 @@ func (v *Vite) ManifestHash() (string, error) {
 	}
 
 	if errors.Is(err, fs.ErrNotExist) {
-		return "", ErrManifestNotExist
+		return "", fmt.Errorf("%w: %q", ErrManifestNotExist, v.manifestPath())
 	}
 
 	if err != nil {
@@ -120,7 +120,7 @@ func (v *Vite) chunk(asset string) (Manifest, *ManifestChunk, error) {
 
 	chunk, ok := manifest[asset]
 	if !ok {
-		return nil, nil, fmt.Errorf("vite: unable to locate file: %v", asset)
+		return nil, nil, fmt.Errorf("%w: %q", ErrAssetNotExist, asset)
 	}
 
 	return manifest, &chunk, nil
@@ -140,9 +140,9 @@ func (v *Vite) hotAsset(asset string) (string, error) {
 		return "", err
 	}
 
-	devServerUrl := strings.TrimSpace(string(hotFileContent))
+	devServerURL := strings.TrimRight(strings.TrimSpace(string(hotFileContent)), "/")
 
-	return fmt.Sprintf("%s/%s", devServerUrl, asset), nil
+	return fmt.Sprintf("%s/%s", devServerURL, asset), nil
 }
 
 func (v *Vite) loadManifest() (Manifest, error) {
@@ -163,7 +163,7 @@ func (v *Vite) loadManifest() (Manifest, error) {
 	}
 
 	if errors.Is(err, fs.ErrNotExist) {
-		return nil, ErrManifestNotExist
+		return nil, fmt.Errorf("%w: %q", ErrManifestNotExist, v.manifestPath())
 	}
 
 	if err != nil {
