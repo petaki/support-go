@@ -6,14 +6,17 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/petaki/support-go/file"
 )
 
 // Vite type.
 type Vite struct {
+	mu              sync.Mutex
 	publicDirectory string
 	buildDirectory  string
 	assetFS         fs.FS
@@ -35,9 +38,9 @@ func New(publicDirectory, buildDirectory string, assetFS ...fs.FS) *Vite {
 
 // IsRunningHot function.
 func (v *Vite) IsRunningHot() bool {
-	_, err := os.Stat(v.hotFile())
+	info, err := os.Stat(v.hotFile())
 
-	return !errors.Is(err, fs.ErrNotExist)
+	return err == nil && info.Mode().IsRegular()
 }
 
 // ManifestHash function.
@@ -46,18 +49,21 @@ func (v *Vite) ManifestHash() (string, error) {
 		return "", nil
 	}
 
-	if v.assetFS != nil {
-		hash, err := file.HashFromFS(v.manifestPath(), v.assetFS)
-		if err != nil {
-			return "", ErrManifestNotExist
-		}
+	var hash string
+	var err error
 
-		return hash, nil
+	if v.assetFS != nil {
+		hash, err = file.HashFromFS(v.manifestPath(), v.assetFS)
+	} else {
+		hash, err = file.Hash(v.manifestPath())
 	}
 
-	hash, err := file.Hash(v.manifestPath())
-	if err != nil {
+	if errors.Is(err, fs.ErrNotExist) {
 		return "", ErrManifestNotExist
+	}
+
+	if err != nil {
+		return "", err
 	}
 
 	return hash, nil
@@ -69,12 +75,12 @@ func (v *Vite) Asset(asset string) (string, error) {
 		return v.hotAsset(asset)
 	}
 
-	chunk, err := v.chunk(asset)
+	_, chunk, err := v.chunk(asset)
 	if err != nil {
 		return "", err
 	}
 
-	return "/" + filepath.Join(v.buildDirectory, chunk.File), nil
+	return path.Join("/", v.buildDirectory, chunk.File), nil
 }
 
 // InertiaSSRURL function.
@@ -92,32 +98,40 @@ func (v *Vite) CSS(asset string) ([]string, error) {
 		return nil, nil
 	}
 
-	chunk, err := v.chunk(asset)
+	manifest, chunk, err := v.chunk(asset)
 	if err != nil {
 		return nil, err
 	}
 
 	var css []string
 
-	for _, current := range chunk.CSS {
-		css = append(css, "/"+filepath.Join(v.buildDirectory, current))
+	for _, current := range chunk.Imports {
+		css = v.appendAssets(css, manifest[current].CSS)
 	}
 
-	return css, nil
+	return v.appendAssets(css, chunk.CSS), nil
 }
 
-func (v *Vite) chunk(asset string) (*ManifestChunk, error) {
-	err := v.ensureManifest()
+func (v *Vite) chunk(asset string) (Manifest, *ManifestChunk, error) {
+	manifest, err := v.loadManifest()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	chunk, ok := v.manifest[asset]
+	chunk, ok := manifest[asset]
 	if !ok {
-		return nil, fmt.Errorf("vite: unable to locate file: %v", asset)
+		return nil, nil, fmt.Errorf("vite: unable to locate file: %v", asset)
 	}
 
-	return &chunk, nil
+	return manifest, &chunk, nil
+}
+
+func (v *Vite) appendAssets(assets []string, files []string) []string {
+	for _, current := range files {
+		assets = append(assets, path.Join("/", v.buildDirectory, current))
+	}
+
+	return assets
 }
 
 func (v *Vite) hotAsset(asset string) (string, error) {
@@ -131,41 +145,41 @@ func (v *Vite) hotAsset(asset string) (string, error) {
 	return fmt.Sprintf("%s/%s", devServerUrl, asset), nil
 }
 
-func (v *Vite) ensureManifest() error {
+func (v *Vite) loadManifest() (Manifest, error) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
 	if v.manifest != nil {
-		return nil
+		return v.manifest, nil
 	}
 
 	var manifestContent []byte
+	var err error
 
 	if v.assetFS != nil {
-		_, err := fs.Stat(v.assetFS, v.manifestPath())
-		if errors.Is(err, fs.ErrNotExist) {
-			return ErrManifestNotExist
-		}
-
 		manifestContent, err = fs.ReadFile(v.assetFS, v.manifestPath())
-		if err != nil {
-			return err
-		}
 	} else {
-		_, err := os.Stat(v.manifestPath())
-		if errors.Is(err, fs.ErrNotExist) {
-			return ErrManifestNotExist
-		}
-
 		manifestContent, err = os.ReadFile(v.manifestPath())
-		if err != nil {
-			return err
-		}
 	}
 
-	err := json.Unmarshal(manifestContent, &v.manifest)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, ErrManifestNotExist
+	}
+
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	var manifest Manifest
+
+	err = json.Unmarshal(manifestContent, &manifest)
+	if err != nil {
+		return nil, err
+	}
+
+	v.manifest = manifest
+
+	return manifest, nil
 }
 
 func (v *Vite) hotFile() string {
@@ -174,7 +188,7 @@ func (v *Vite) hotFile() string {
 
 func (v *Vite) manifestPath() string {
 	if v.assetFS != nil {
-		return filepath.Join(v.buildDirectory, "manifest.json")
+		return path.Join(v.buildDirectory, "manifest.json")
 	}
 
 	return filepath.Join(v.publicDirectory, v.buildDirectory, "manifest.json")

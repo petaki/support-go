@@ -1,8 +1,11 @@
 package vite
 
 import (
+	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"testing/fstest"
 )
@@ -63,6 +66,36 @@ func TestIsRunningHot(t *testing.T) {
 	}
 }
 
+func TestIsRunningHotWithUnreachableHotFile(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "public")
+
+	err := os.WriteFile(dir, []byte("not a directory"), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	v := New(dir, "build")
+
+	if v.IsRunningHot() {
+		t.Error("expected not hot when the hot file path is unreachable")
+	}
+}
+
+func TestIsRunningHotWithHotDirectory(t *testing.T) {
+	dir := t.TempDir()
+
+	err := os.Mkdir(filepath.Join(dir, "hot"), 0755)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	v := New(dir, "build")
+
+	if v.IsRunningHot() {
+		t.Error("expected not hot when the hot file is a directory")
+	}
+}
+
 func TestManifestHash(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -96,6 +129,26 @@ func TestManifestHash(t *testing.T) {
 	}
 }
 
+func TestManifestHashWithUnreachableManifest(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "public")
+
+	err := os.WriteFile(dir, []byte("not a directory"), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	v := New(dir, "build")
+
+	_, err = v.ManifestHash()
+	if err == nil {
+		t.Fatal("expected an error")
+	}
+
+	if errors.Is(err, ErrManifestNotExist) {
+		t.Errorf("expected the underlying error, got: %v", err)
+	}
+}
+
 func TestManifestHashWithFS(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -126,6 +179,27 @@ func TestManifestHashWithFS(t *testing.T) {
 
 			if tt.manifest && hash == "" {
 				t.Error("expected non-empty hash")
+			}
+		})
+	}
+}
+
+func TestAssetWithoutManifest(t *testing.T) {
+	tests := []struct {
+		name    string
+		assetFS []fs.FS
+	}{
+		{"From Disk", nil},
+		{"From FS", []fs.FS{fstest.MapFS{}}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v := New(t.TempDir(), "build", tt.assetFS...)
+
+			_, err := v.Asset("resources/js/app.js")
+			if err != ErrManifestNotExist {
+				t.Errorf("expected: %v, got: %v", ErrManifestNotExist, err)
 			}
 		})
 	}
@@ -272,4 +346,149 @@ func TestCSSWithFS(t *testing.T) {
 			}
 		}
 	}
+}
+
+const testManifestWithImports = `{
+		"_shared-4Bu55YQl.js": {
+			"file": "assets/shared-4Bu55YQl.js",
+			"name": "shared",
+			"css": [
+				"assets/shared-Dn0TWFOf.css"
+			]
+		},
+		"_shared-Dn0TWFOf.css": {
+			"file": "assets/shared-Dn0TWFOf.css",
+			"src": "_shared-Dn0TWFOf.css"
+		},
+		"resources/css/app.css": {
+			"file": "assets/app-W1erjkBN.css",
+			"name": "app",
+			"names": [
+				"app.css"
+			],
+			"src": "resources/css/app.css",
+			"isEntry": true
+		},
+		"resources/js/app.js": {
+			"file": "assets/app-_mEpyO-B.js",
+			"name": "app",
+			"src": "resources/js/app.js",
+			"isEntry": true,
+			"imports": [
+				"_shared-4Bu55YQl.js"
+			],
+			"dynamicImports": [
+				"resources/js/lazy.js"
+			],
+			"css": [
+				"assets/app-W1erjkBN.css"
+			]
+		},
+		"resources/js/lazy.js": {
+			"file": "assets/lazy-CxGDFGtv.js",
+			"name": "lazy",
+			"src": "resources/js/lazy.js",
+			"isDynamicEntry": true,
+			"imports": [
+				"_shared-4Bu55YQl.js"
+			]
+		},
+		"resources/js/second.js": {
+			"file": "assets/second-zqNUbXCm.js",
+			"name": "second",
+			"src": "resources/js/second.js",
+			"isEntry": true,
+			"imports": [
+				"_shared-4Bu55YQl.js"
+			]
+		}
+	}`
+
+func createViteWithManifest(t *testing.T, manifest string) *Vite {
+	t.Helper()
+
+	return New(t.TempDir(), "build", fstest.MapFS{
+		"build/manifest.json": &fstest.MapFile{Data: []byte(manifest)},
+	})
+}
+
+func TestCSSWithImports(t *testing.T) {
+	tests := []struct {
+		name     string
+		asset    string
+		expected []string
+	}{
+		{
+			"Imported Chunk CSS First",
+			"resources/js/app.js",
+			[]string{"/build/assets/shared-Dn0TWFOf.css", "/build/assets/app-W1erjkBN.css"},
+		},
+		{
+			"Only Imported Chunk CSS",
+			"resources/js/second.js",
+			[]string{"/build/assets/shared-Dn0TWFOf.css"},
+		},
+		{
+			"CSS Entrypoint",
+			"resources/css/app.css",
+			nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v := createViteWithManifest(t, testManifestWithImports)
+
+			got, err := v.CSS(tt.asset)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if len(tt.expected) != len(got) {
+				t.Fatalf("expected: %v, got: %v", tt.expected, got)
+			}
+
+			for i, css := range tt.expected {
+				if css != got[i] {
+					t.Errorf("expected: %v, got: %v", css, got[i])
+				}
+			}
+		})
+	}
+}
+
+func TestConcurrentManifestAccess(t *testing.T) {
+	v := createViteWithManifest(t, testManifestWithImports)
+
+	var wg sync.WaitGroup
+
+	for range 50 {
+
+		wg.Go(func() {
+
+			asset, err := v.Asset("resources/js/app.js")
+			if err != nil {
+				t.Error(err)
+
+				return
+			}
+
+			if asset != "/build/assets/app-_mEpyO-B.js" {
+				t.Errorf("unexpected asset: %v", asset)
+			}
+
+			css, err := v.CSS("resources/js/app.js")
+			if err != nil {
+				t.Error(err)
+
+				return
+			}
+
+			if len(css) != 2 {
+				t.Errorf("expected 2 css files, got: %v", css)
+			}
+		})
+	}
+
+	wg.Wait()
 }
