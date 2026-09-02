@@ -114,7 +114,7 @@ cli.ErrorLog.Println("connection lost") // red "ERROR" prefix
 
 ## File
 
-The `file` package provides MD5 hash computation for files.
+The `file` package provides MD5 hash computation for files and in-memory content.
 
 ```go
 import "github.com/petaki/support-go/file"
@@ -124,6 +124,9 @@ hash, err := file.Hash("/path/to/file.txt")
 
 // Hash a file from an fs.FS
 hash, err := file.HashFromFS("static/app.js", embeddedFS)
+
+// Hash content that has already been read
+hash := file.HashFromContent(content)
 ```
 
 ## Forms
