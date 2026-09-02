@@ -2,6 +2,7 @@ package vite
 
 import (
 	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sync"
@@ -77,6 +78,21 @@ func TestIsRunningHotWithUnreachableHotFile(t *testing.T) {
 
 	if v.IsRunningHot() {
 		t.Error("expected not hot when the hot file path is unreachable")
+	}
+}
+
+func TestIsRunningHotWithHotDirectory(t *testing.T) {
+	dir := t.TempDir()
+
+	err := os.Mkdir(filepath.Join(dir, "hot"), 0755)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	v := New(dir, "build")
+
+	if v.IsRunningHot() {
+		t.Error("expected not hot when the hot file is a directory")
 	}
 }
 
@@ -163,6 +179,27 @@ func TestManifestHashWithFS(t *testing.T) {
 
 			if tt.manifest && hash == "" {
 				t.Error("expected non-empty hash")
+			}
+		})
+	}
+}
+
+func TestAssetWithoutManifest(t *testing.T) {
+	tests := []struct {
+		name    string
+		assetFS []fs.FS
+	}{
+		{"From Disk", nil},
+		{"From FS", []fs.FS{fstest.MapFS{}}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v := New(t.TempDir(), "build", tt.assetFS...)
+
+			_, err := v.Asset("resources/js/app.js")
+			if err != ErrManifestNotExist {
+				t.Errorf("expected: %v, got: %v", ErrManifestNotExist, err)
 			}
 		})
 	}

@@ -38,9 +38,9 @@ func New(publicDirectory, buildDirectory string, assetFS ...fs.FS) *Vite {
 
 // IsRunningHot function.
 func (v *Vite) IsRunningHot() bool {
-	_, err := os.Stat(v.hotFile())
+	info, err := os.Stat(v.hotFile())
 
-	return err == nil
+	return err == nil && info.Mode().IsRegular()
 }
 
 // ManifestHash function.
@@ -154,32 +154,25 @@ func (v *Vite) loadManifest() (Manifest, error) {
 	}
 
 	var manifestContent []byte
+	var err error
 
 	if v.assetFS != nil {
-		_, err := fs.Stat(v.assetFS, v.manifestPath())
-		if errors.Is(err, fs.ErrNotExist) {
-			return nil, ErrManifestNotExist
-		}
-
 		manifestContent, err = fs.ReadFile(v.assetFS, v.manifestPath())
-		if err != nil {
-			return nil, err
-		}
 	} else {
-		_, err := os.Stat(v.manifestPath())
-		if errors.Is(err, fs.ErrNotExist) {
-			return nil, ErrManifestNotExist
-		}
-
 		manifestContent, err = os.ReadFile(v.manifestPath())
-		if err != nil {
-			return nil, err
-		}
+	}
+
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, ErrManifestNotExist
+	}
+
+	if err != nil {
+		return nil, err
 	}
 
 	var manifest Manifest
 
-	err := json.Unmarshal(manifestContent, &manifest)
+	err = json.Unmarshal(manifestContent, &manifest)
 	if err != nil {
 		return nil, err
 	}
