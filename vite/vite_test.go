@@ -64,6 +64,21 @@ func TestIsRunningHot(t *testing.T) {
 	}
 }
 
+func TestIsRunningHotWithUnreachableHotFile(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "public")
+
+	err := os.WriteFile(dir, []byte("not a directory"), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	v := New(dir, "build")
+
+	if v.IsRunningHot() {
+		t.Error("expected not hot when the hot file path is unreachable")
+	}
+}
+
 func TestManifestHash(t *testing.T) {
 	tests := []struct {
 		name      string

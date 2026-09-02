@@ -40,7 +40,7 @@ func New(publicDirectory, buildDirectory string, assetFS ...fs.FS) *Vite {
 func (v *Vite) IsRunningHot() bool {
 	_, err := os.Stat(v.hotFile())
 
-	return !errors.Is(err, fs.ErrNotExist)
+	return err == nil
 }
 
 // ManifestHash function.
