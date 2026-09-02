@@ -115,7 +115,7 @@ func TestManifestHash(t *testing.T) {
 			v := New(dir, "build")
 
 			hash, err := v.ManifestHash()
-			if err != tt.expectErr {
+			if !errors.Is(err, tt.expectErr) {
 				t.Errorf("expected error: %v, got: %v", tt.expectErr, err)
 			}
 
@@ -174,7 +174,7 @@ func TestManifestHashWithFS(t *testing.T) {
 			v := New(dir, "build", mapFS)
 
 			hash, err := v.ManifestHash()
-			if err != tt.expectErr {
+			if !errors.Is(err, tt.expectErr) {
 				t.Errorf("expected error: %v, got: %v", tt.expectErr, err)
 			}
 
@@ -199,7 +199,7 @@ func TestAssetWithoutManifest(t *testing.T) {
 			v := New(t.TempDir(), "build", tt.assetFS...)
 
 			_, err := v.Asset("resources/js/app.js")
-			if err != ErrManifestNotExist {
+			if !errors.Is(err, ErrManifestNotExist) {
 				t.Errorf("expected: %v, got: %v", ErrManifestNotExist, err)
 			}
 		})

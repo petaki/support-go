@@ -59,7 +59,7 @@ func (v *Vite) ManifestHash() (string, error) {
 	}
 
 	if errors.Is(err, fs.ErrNotExist) {
-		return "", ErrManifestNotExist
+		return "", fmt.Errorf("%w: %q", ErrManifestNotExist, v.manifestPath())
 	}
 
 	if err != nil {
@@ -163,7 +163,7 @@ func (v *Vite) loadManifest() (Manifest, error) {
 	}
 
 	if errors.Is(err, fs.ErrNotExist) {
-		return nil, ErrManifestNotExist
+		return nil, fmt.Errorf("%w: %q", ErrManifestNotExist, v.manifestPath())
 	}
 
 	if err != nil {
