@@ -9,6 +9,8 @@ import (
 	"sync"
 	"testing"
 	"testing/fstest"
+
+	"github.com/petaki/support-go/file"
 )
 
 const testManifest = `{"resources/js/app.js":{"file":"assets/app-abc123.js","src":"resources/js/app.js","isEntry":true,"css":["assets/app-def456.css"]}}`
@@ -127,6 +129,21 @@ func TestManifestHash(t *testing.T) {
 				t.Error("expected non-empty hash")
 			}
 		})
+	}
+}
+
+func TestManifestHashMatchesContent(t *testing.T) {
+	dir := createTempPublicDir(t, false, true)
+	v := New(dir, "build")
+
+	got, err := v.ManifestHash()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := file.HashFromContent([]byte(testManifest))
+	if expected != got {
+		t.Errorf("expected: %v, got: %v", expected, got)
 	}
 }
 

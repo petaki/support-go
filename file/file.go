@@ -1,6 +1,7 @@
 package file
 
 import (
+	"bytes"
 	"crypto/md5"
 	"fmt"
 	"io"
@@ -32,10 +33,17 @@ func HashFromFS(filePath string, fileFS fs.FS) (string, error) {
 	return md5Hash(file)
 }
 
-func md5Hash(file io.Reader) (string, error) {
+// HashFromContent function.
+func HashFromContent(content []byte) string {
+	hash, _ := md5Hash(bytes.NewReader(content))
+
+	return hash
+}
+
+func md5Hash(reader io.Reader) (string, error) {
 	hash := md5.New()
 
-	_, err := io.Copy(hash, file)
+	_, err := io.Copy(hash, reader)
 	if err != nil {
 		return "", err
 	}

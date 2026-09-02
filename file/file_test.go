@@ -148,3 +148,18 @@ func TestHashAndHashFromFSMatch(t *testing.T) {
 		t.Errorf("Hash and HashFromFS produced different results: %v vs %v", hash1, hash2)
 	}
 }
+
+func TestHashFromContent(t *testing.T) {
+	content := []byte("hello world")
+
+	expected := "5eb63bbbe01eeed093cb22bb8f5acdc3"
+
+	got := HashFromContent(content)
+	if expected != got {
+		t.Errorf("expected: %v, got: %v", expected, got)
+	}
+
+	if HashFromContent(nil) != HashFromContent([]byte{}) {
+		t.Error("expected nil and empty content to hash equally")
+	}
+}

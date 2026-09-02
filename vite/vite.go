@@ -21,6 +21,7 @@ type Vite struct {
 	buildDirectory  string
 	assetFS         fs.FS
 	manifest        Manifest
+	manifestHash    string
 }
 
 // New function.
@@ -49,24 +50,15 @@ func (v *Vite) ManifestHash() (string, error) {
 		return "", nil
 	}
 
-	var hash string
-	var err error
-
-	if v.assetFS != nil {
-		hash, err = file.HashFromFS(v.manifestPath(), v.assetFS)
-	} else {
-		hash, err = file.Hash(v.manifestPath())
-	}
-
-	if errors.Is(err, fs.ErrNotExist) {
-		return "", fmt.Errorf("%w: %q", ErrManifestNotExist, v.manifestPath())
-	}
-
+	_, err := v.loadManifest()
 	if err != nil {
 		return "", err
 	}
 
-	return hash, nil
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
+	return v.manifestHash, nil
 }
 
 // Asset function.
@@ -153,17 +145,19 @@ func (v *Vite) loadManifest() (Manifest, error) {
 		return v.manifest, nil
 	}
 
+	manifestPath := v.manifestPath()
+
 	var manifestContent []byte
 	var err error
 
 	if v.assetFS != nil {
-		manifestContent, err = fs.ReadFile(v.assetFS, v.manifestPath())
+		manifestContent, err = fs.ReadFile(v.assetFS, manifestPath)
 	} else {
-		manifestContent, err = os.ReadFile(v.manifestPath())
+		manifestContent, err = os.ReadFile(manifestPath)
 	}
 
 	if errors.Is(err, fs.ErrNotExist) {
-		return nil, fmt.Errorf("%w: %q", ErrManifestNotExist, v.manifestPath())
+		return nil, fmt.Errorf("%w: %q", ErrManifestNotExist, manifestPath)
 	}
 
 	if err != nil {
@@ -178,6 +172,7 @@ func (v *Vite) loadManifest() (Manifest, error) {
 	}
 
 	v.manifest = manifest
+	v.manifestHash = file.HashFromContent(manifestContent)
 
 	return manifest, nil
 }
