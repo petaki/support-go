@@ -3,6 +3,7 @@ package vite
 import (
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"testing/fstest"
 )
@@ -272,4 +273,64 @@ func TestCSSWithFS(t *testing.T) {
 			}
 		}
 	}
+}
+
+const testManifestWithImports = `{
+	"_shared-B7PI925R.js": {
+		"file": "assets/shared-B7PI925R.js",
+		"name": "shared",
+		"css": ["assets/shared-ChJ_j-JJ.css"]
+	},
+	"views/foo.js": {
+		"file": "assets/foo-BRBmoGS9.js",
+		"name": "foo",
+		"src": "views/foo.js",
+		"isEntry": true,
+		"imports": ["_shared-B7PI925R.js"],
+		"css": ["assets/foo-5UjPuW-k.css"]
+	}
+}`
+
+func createViteWithManifest(t *testing.T, manifest string) *Vite {
+	t.Helper()
+
+	return New(t.TempDir(), "build", fstest.MapFS{
+		"build/manifest.json": &fstest.MapFile{Data: []byte(manifest)},
+	})
+}
+
+func TestConcurrentManifestAccess(t *testing.T) {
+	v := createViteWithManifest(t, testManifestWithImports)
+
+	var wg sync.WaitGroup
+
+	for range 50 {
+
+		wg.Go(func() {
+
+			asset, err := v.Asset("views/foo.js")
+			if err != nil {
+				t.Error(err)
+
+				return
+			}
+
+			if asset != "/build/assets/foo-BRBmoGS9.js" {
+				t.Errorf("unexpected asset: %v", asset)
+			}
+
+			css, err := v.CSS("views/foo.js")
+			if err != nil {
+				t.Error(err)
+
+				return
+			}
+
+			if len(css) != 1 {
+				t.Errorf("expected 1 css file, got: %v", css)
+			}
+		})
+	}
+
+	wg.Wait()
 }
