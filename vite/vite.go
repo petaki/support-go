@@ -120,7 +120,7 @@ func (v *Vite) chunk(asset string) (Manifest, *ManifestChunk, error) {
 
 	chunk, ok := manifest[asset]
 	if !ok {
-		return nil, nil, fmt.Errorf("vite: unable to locate file: %v", asset)
+		return nil, nil, fmt.Errorf("%w: %q", ErrAssetNotExist, asset)
 	}
 
 	return manifest, &chunk, nil

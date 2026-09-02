@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"testing/fstest"
@@ -272,6 +273,24 @@ func TestAssetWithTrailingSlashInHotFile(t *testing.T) {
 	expected := "http://localhost:5173/resources/js/app.js"
 	if expected != got {
 		t.Errorf("expected: %v, got: %v", expected, got)
+	}
+}
+
+func TestAssetNotExist(t *testing.T) {
+	v := createViteWithManifest(t, testManifestWithImports)
+
+	_, err := v.Asset("resources/js/missing.js")
+	if !errors.Is(err, ErrAssetNotExist) {
+		t.Fatalf("expected: %v, got: %v", ErrAssetNotExist, err)
+	}
+
+	if !strings.Contains(err.Error(), "resources/js/missing.js") {
+		t.Errorf("expected the asset name in: %v", err)
+	}
+
+	_, err = v.CSS("resources/js/missing.js")
+	if !errors.Is(err, ErrAssetNotExist) {
+		t.Errorf("expected: %v, got: %v", ErrAssetNotExist, err)
 	}
 }
 
