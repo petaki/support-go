@@ -1,6 +1,7 @@
 package vite
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"sync"
@@ -109,6 +110,26 @@ func TestManifestHash(t *testing.T) {
 				t.Error("expected non-empty hash")
 			}
 		})
+	}
+}
+
+func TestManifestHashWithUnreachableManifest(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "public")
+
+	err := os.WriteFile(dir, []byte("not a directory"), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	v := New(dir, "build")
+
+	_, err = v.ManifestHash()
+	if err == nil {
+		t.Fatal("expected an error")
+	}
+
+	if errors.Is(err, ErrManifestNotExist) {
+		t.Errorf("expected the underlying error, got: %v", err)
 	}
 }
 

@@ -49,18 +49,21 @@ func (v *Vite) ManifestHash() (string, error) {
 		return "", nil
 	}
 
-	if v.assetFS != nil {
-		hash, err := file.HashFromFS(v.manifestPath(), v.assetFS)
-		if err != nil {
-			return "", ErrManifestNotExist
-		}
+	var hash string
+	var err error
 
-		return hash, nil
+	if v.assetFS != nil {
+		hash, err = file.HashFromFS(v.manifestPath(), v.assetFS)
+	} else {
+		hash, err = file.Hash(v.manifestPath())
 	}
 
-	hash, err := file.Hash(v.manifestPath())
-	if err != nil {
+	if errors.Is(err, fs.ErrNotExist) {
 		return "", ErrManifestNotExist
+	}
+
+	if err != nil {
+		return "", err
 	}
 
 	return hash, nil
