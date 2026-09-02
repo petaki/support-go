@@ -276,20 +276,60 @@ func TestCSSWithFS(t *testing.T) {
 }
 
 const testManifestWithImports = `{
-	"_shared-B7PI925R.js": {
-		"file": "assets/shared-B7PI925R.js",
-		"name": "shared",
-		"css": ["assets/shared-ChJ_j-JJ.css"]
-	},
-	"views/foo.js": {
-		"file": "assets/foo-BRBmoGS9.js",
-		"name": "foo",
-		"src": "views/foo.js",
-		"isEntry": true,
-		"imports": ["_shared-B7PI925R.js"],
-		"css": ["assets/foo-5UjPuW-k.css"]
-	}
-}`
+		"_shared-4Bu55YQl.js": {
+			"file": "assets/shared-4Bu55YQl.js",
+			"name": "shared",
+			"css": [
+				"assets/shared-Dn0TWFOf.css"
+			]
+		},
+		"_shared-Dn0TWFOf.css": {
+			"file": "assets/shared-Dn0TWFOf.css",
+			"src": "_shared-Dn0TWFOf.css"
+		},
+		"resources/css/app.css": {
+			"file": "assets/app-W1erjkBN.css",
+			"name": "app",
+			"names": [
+				"app.css"
+			],
+			"src": "resources/css/app.css",
+			"isEntry": true
+		},
+		"resources/js/app.js": {
+			"file": "assets/app-_mEpyO-B.js",
+			"name": "app",
+			"src": "resources/js/app.js",
+			"isEntry": true,
+			"imports": [
+				"_shared-4Bu55YQl.js"
+			],
+			"dynamicImports": [
+				"resources/js/lazy.js"
+			],
+			"css": [
+				"assets/app-W1erjkBN.css"
+			]
+		},
+		"resources/js/lazy.js": {
+			"file": "assets/lazy-CxGDFGtv.js",
+			"name": "lazy",
+			"src": "resources/js/lazy.js",
+			"isDynamicEntry": true,
+			"imports": [
+				"_shared-4Bu55YQl.js"
+			]
+		},
+		"resources/js/second.js": {
+			"file": "assets/second-zqNUbXCm.js",
+			"name": "second",
+			"src": "resources/js/second.js",
+			"isEntry": true,
+			"imports": [
+				"_shared-4Bu55YQl.js"
+			]
+		}
+	}`
 
 func createViteWithManifest(t *testing.T, manifest string) *Vite {
 	t.Helper()
@@ -297,6 +337,51 @@ func createViteWithManifest(t *testing.T, manifest string) *Vite {
 	return New(t.TempDir(), "build", fstest.MapFS{
 		"build/manifest.json": &fstest.MapFile{Data: []byte(manifest)},
 	})
+}
+
+func TestCSSWithImports(t *testing.T) {
+	tests := []struct {
+		name     string
+		asset    string
+		expected []string
+	}{
+		{
+			"Imported Chunk CSS First",
+			"resources/js/app.js",
+			[]string{"/build/assets/shared-Dn0TWFOf.css", "/build/assets/app-W1erjkBN.css"},
+		},
+		{
+			"Only Imported Chunk CSS",
+			"resources/js/second.js",
+			[]string{"/build/assets/shared-Dn0TWFOf.css"},
+		},
+		{
+			"CSS Entrypoint",
+			"resources/css/app.css",
+			nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v := createViteWithManifest(t, testManifestWithImports)
+
+			got, err := v.CSS(tt.asset)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if len(tt.expected) != len(got) {
+				t.Fatalf("expected: %v, got: %v", tt.expected, got)
+			}
+
+			for i, css := range tt.expected {
+				if css != got[i] {
+					t.Errorf("expected: %v, got: %v", css, got[i])
+				}
+			}
+		})
+	}
 }
 
 func TestConcurrentManifestAccess(t *testing.T) {
@@ -308,26 +393,26 @@ func TestConcurrentManifestAccess(t *testing.T) {
 
 		wg.Go(func() {
 
-			asset, err := v.Asset("views/foo.js")
+			asset, err := v.Asset("resources/js/app.js")
 			if err != nil {
 				t.Error(err)
 
 				return
 			}
 
-			if asset != "/build/assets/foo-BRBmoGS9.js" {
+			if asset != "/build/assets/app-_mEpyO-B.js" {
 				t.Errorf("unexpected asset: %v", asset)
 			}
 
-			css, err := v.CSS("views/foo.js")
+			css, err := v.CSS("resources/js/app.js")
 			if err != nil {
 				t.Error(err)
 
 				return
 			}
 
-			if len(css) != 1 {
-				t.Errorf("expected 1 css file, got: %v", css)
+			if len(css) != 2 {
+				t.Errorf("expected 2 css files, got: %v", css)
 			}
 		})
 	}

@@ -72,7 +72,7 @@ func (v *Vite) Asset(asset string) (string, error) {
 		return v.hotAsset(asset)
 	}
 
-	chunk, err := v.chunk(asset)
+	_, chunk, err := v.chunk(asset)
 	if err != nil {
 		return "", err
 	}
@@ -95,32 +95,40 @@ func (v *Vite) CSS(asset string) ([]string, error) {
 		return nil, nil
 	}
 
-	chunk, err := v.chunk(asset)
+	manifest, chunk, err := v.chunk(asset)
 	if err != nil {
 		return nil, err
 	}
 
 	var css []string
 
-	for _, current := range chunk.CSS {
-		css = append(css, path.Join("/", v.buildDirectory, current))
+	for _, current := range chunk.Imports {
+		css = v.appendAssets(css, manifest[current].CSS)
 	}
 
-	return css, nil
+	return v.appendAssets(css, chunk.CSS), nil
 }
 
-func (v *Vite) chunk(asset string) (*ManifestChunk, error) {
+func (v *Vite) chunk(asset string) (Manifest, *ManifestChunk, error) {
 	manifest, err := v.loadManifest()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	chunk, ok := manifest[asset]
 	if !ok {
-		return nil, fmt.Errorf("vite: unable to locate file: %v", asset)
+		return nil, nil, fmt.Errorf("vite: unable to locate file: %v", asset)
 	}
 
-	return &chunk, nil
+	return manifest, &chunk, nil
+}
+
+func (v *Vite) appendAssets(assets []string, files []string) []string {
+	for _, current := range files {
+		assets = append(assets, path.Join("/", v.buildDirectory, current))
+	}
+
+	return assets
 }
 
 func (v *Vite) hotAsset(asset string) (string, error) {
