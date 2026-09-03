@@ -124,7 +124,7 @@ func (v *Vite) Preload(asset string) ([]string, error) {
 	var preload []string
 
 	for _, current := range chunk.Imports {
-		preload = append(preload, v.assetPath(manifest[current].File))
+		preload = v.appendAsset(preload, manifest[current].File)
 	}
 
 	return preload, nil
