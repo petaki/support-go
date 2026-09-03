@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -73,19 +74,24 @@ const testManifestWithImports = `{
 
 const testHotContent = "http://localhost:5173"
 
-func createTempPublicDir(t *testing.T, hot bool, manifest bool) string {
+type publicDirOptions struct {
+	hot      bool
+	manifest bool
+}
+
+func createTempPublicDir(t *testing.T, options publicDirOptions) string {
 	t.Helper()
 
 	dir := t.TempDir()
 
-	if hot {
+	if options.hot {
 		err := os.WriteFile(filepath.Join(dir, "hot"), []byte(testHotContent), 0644)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
 
-	if manifest {
+	if options.manifest {
 		buildDir := filepath.Join(dir, "build")
 
 		err := os.MkdirAll(buildDir, 0755)
@@ -122,7 +128,7 @@ func TestIsRunningHot(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dir := createTempPublicDir(t, tt.hot, false)
+			dir := createTempPublicDir(t, publicDirOptions{hot: tt.hot})
 			v := New(dir, "build")
 
 			got := v.IsRunningHot()
@@ -178,7 +184,7 @@ func TestManifestHash(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dir := createTempPublicDir(t, tt.hot, tt.manifest)
+			dir := createTempPublicDir(t, publicDirOptions{hot: tt.hot, manifest: tt.manifest})
 			v := New(dir, "build")
 
 			hash, err := v.ManifestHash()
@@ -277,13 +283,13 @@ func TestAsset(t *testing.T) {
 		manifest bool
 		expected string
 	}{
-		{"Hot", true, false, "http://localhost:5173/resources/js/app.js"},
+		{"Hot", true, false, testHotContent + "/resources/js/app.js"},
 		{"Production", false, true, "/build/assets/app-abc123.js"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dir := createTempPublicDir(t, tt.hot, tt.manifest)
+			dir := createTempPublicDir(t, publicDirOptions{hot: tt.hot, manifest: tt.manifest})
 			v := New(dir, "build")
 
 			got, err := v.Asset("resources/js/app.js")
@@ -299,14 +305,7 @@ func TestAsset(t *testing.T) {
 }
 
 func TestAssetWithFS(t *testing.T) {
-	dir := t.TempDir()
-	mapFS := fstest.MapFS{
-		"build/manifest.json": &fstest.MapFile{
-			Data: []byte(testManifest),
-		},
-	}
-
-	v := New(dir, "build", mapFS)
+	v := createViteWithManifest(t, testManifest)
 
 	got, err := v.Asset("resources/js/app.js")
 	if err != nil {
@@ -334,7 +333,7 @@ func TestAssetWithTrailingSlashInHotFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := "http://localhost:5173/resources/js/app.js"
+	expected := testHotContent + "/resources/js/app.js"
 	if expected != got {
 		t.Errorf("expected: %v, got: %v", expected, got)
 	}
@@ -369,13 +368,13 @@ func TestInertiaSSRURL(t *testing.T) {
 		hot      bool
 		expected string
 	}{
-		{"Hot", true, "http://localhost:5173/__inertia_ssr"},
+		{"Hot", true, testHotContent + "/__inertia_ssr"},
 		{"Not Hot", false, "http://127.0.0.1:13714/render"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dir := createTempPublicDir(t, tt.hot, false)
+			dir := createTempPublicDir(t, publicDirOptions{hot: tt.hot})
 			v := New(dir, "build")
 
 			got, err := v.InertiaSSRURL("http://127.0.0.1:13714/render")
@@ -403,7 +402,7 @@ func TestCSS(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dir := createTempPublicDir(t, tt.hot, tt.manifest)
+			dir := createTempPublicDir(t, publicDirOptions{hot: tt.hot, manifest: tt.manifest})
 			v := New(dir, "build")
 
 			got, err := v.CSS("resources/js/app.js")
@@ -411,28 +410,15 @@ func TestCSS(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if len(tt.expected) != len(got) {
-				t.Fatalf("expected: %v, got: %v", tt.expected, got)
-			}
-
-			for i, css := range tt.expected {
-				if css != got[i] {
-					t.Errorf("expected: %v, got: %v", css, got[i])
-				}
+			if !slices.Equal(tt.expected, got) {
+				t.Errorf("expected: %v, got: %v", tt.expected, got)
 			}
 		})
 	}
 }
 
 func TestCSSWithFS(t *testing.T) {
-	dir := t.TempDir()
-	mapFS := fstest.MapFS{
-		"build/manifest.json": &fstest.MapFile{
-			Data: []byte(testManifest),
-		},
-	}
-
-	v := New(dir, "build", mapFS)
+	v := createViteWithManifest(t, testManifest)
 
 	got, err := v.CSS("resources/js/app.js")
 	if err != nil {
@@ -440,14 +426,8 @@ func TestCSSWithFS(t *testing.T) {
 	}
 
 	expected := []string{"/build/assets/app-def456.css"}
-	if len(expected) != len(got) {
-		t.Fatalf("expected: %v, got: %v", expected, got)
-	}
-
-	for i, css := range expected {
-		if css != got[i] {
-			t.Errorf("expected: %v, got: %v", css, got[i])
-		}
+	if !slices.Equal(expected, got) {
+		t.Errorf("expected: %v, got: %v", expected, got)
 	}
 }
 
@@ -483,14 +463,8 @@ func TestCSSWithImports(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if len(tt.expected) != len(got) {
-				t.Fatalf("expected: %v, got: %v", tt.expected, got)
-			}
-
-			for i, css := range tt.expected {
-				if css != got[i] {
-					t.Errorf("expected: %v, got: %v", css, got[i])
-				}
+			if !slices.Equal(tt.expected, got) {
+				t.Errorf("expected: %v, got: %v", tt.expected, got)
 			}
 		})
 	}
@@ -523,21 +497,15 @@ func TestPreload(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if len(tt.expected) != len(got) {
-				t.Fatalf("expected: %v, got: %v", tt.expected, got)
-			}
-
-			for i, preload := range tt.expected {
-				if preload != got[i] {
-					t.Errorf("expected: %v, got: %v", preload, got[i])
-				}
+			if !slices.Equal(tt.expected, got) {
+				t.Errorf("expected: %v, got: %v", tt.expected, got)
 			}
 		})
 	}
 }
 
 func TestPreloadWhenHot(t *testing.T) {
-	dir := createTempPublicDir(t, true, false)
+	dir := createTempPublicDir(t, publicDirOptions{hot: true})
 	v := New(dir, "build")
 
 	got, err := v.Preload("resources/js/app.js")
@@ -553,6 +521,9 @@ func TestPreloadWhenHot(t *testing.T) {
 func TestConcurrentManifestAccess(t *testing.T) {
 	v := createViteWithManifest(t, testManifestWithImports)
 
+	expectedAsset := "/build/assets/app-_mEpyO-B.js"
+	expectedCSS := []string{"/build/assets/shared-Dn0TWFOf.css", "/build/assets/app-W1erjkBN.css"}
+
 	var wg sync.WaitGroup
 
 	for range 50 {
@@ -564,8 +535,8 @@ func TestConcurrentManifestAccess(t *testing.T) {
 				return
 			}
 
-			if asset != "/build/assets/app-_mEpyO-B.js" {
-				t.Errorf("unexpected asset: %v", asset)
+			if expectedAsset != asset {
+				t.Errorf("expected: %v, got: %v", expectedAsset, asset)
 			}
 
 			css, err := v.CSS("resources/js/app.js")
@@ -575,8 +546,8 @@ func TestConcurrentManifestAccess(t *testing.T) {
 				return
 			}
 
-			if len(css) != 2 {
-				t.Errorf("expected 2 css files, got: %v", css)
+			if !slices.Equal(expectedCSS, css) {
+				t.Errorf("expected: %v, got: %v", expectedCSS, css)
 			}
 		})
 	}
