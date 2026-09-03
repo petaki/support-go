@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 )
@@ -98,12 +99,12 @@ func (v *Vite) CSS(asset string) ([]string, error) {
 
 	for _, current := range chunk.Imports {
 		for _, file := range manifest[current].CSS {
-			css = append(css, v.assetPath(file))
+			css = v.appendAsset(css, file)
 		}
 	}
 
 	for _, file := range chunk.CSS {
-		css = append(css, v.assetPath(file))
+		css = v.appendAsset(css, file)
 	}
 
 	return css, nil
@@ -129,6 +130,16 @@ func (v *Vite) Preload(asset string) ([]string, error) {
 	return preload, nil
 }
 
+func (v *Vite) appendAsset(assets []string, file string) []string {
+	asset := v.assetPath(file)
+
+	if slices.Contains(assets, asset) {
+		return assets
+	}
+
+	return append(assets, asset)
+}
+
 func (v *Vite) assetPath(file string) string {
 	return path.Join("/", v.buildDirectory, file)
 }
@@ -148,18 +159,18 @@ func (v *Vite) hotFile() string {
 	return filepath.Join(v.publicDirectory, "hot")
 }
 
-func (v *Vite) manifestChunk(asset string) (Manifest, *ManifestChunk, error) {
+func (v *Vite) manifestChunk(asset string) (Manifest, ManifestChunk, error) {
 	manifest, err := v.loadManifest()
 	if err != nil {
-		return nil, nil, err
+		return nil, ManifestChunk{}, err
 	}
 
 	chunk, ok := manifest[asset]
 	if !ok {
-		return nil, nil, fmt.Errorf("%w: %q", ErrAssetNotExist, asset)
+		return nil, ManifestChunk{}, fmt.Errorf("%w: %q", ErrAssetNotExist, asset)
 	}
 
-	return manifest, &chunk, nil
+	return manifest, chunk, nil
 }
 
 func (v *Vite) loadManifest() (Manifest, error) {
