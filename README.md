@@ -239,11 +239,11 @@ The root template (`app.gohtml`) uses the shared Vite functions:
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        {{ range (css "resources/js/app.ts") }}
-            <link rel="stylesheet" href="{{ . }}">
-        {{ end }}
         {{ range (preload "resources/js/app.ts") }}
             <link rel="modulepreload" href="{{ . }}">
+        {{ end }}
+        {{ range (css "resources/js/app.ts") }}
+            <link rel="stylesheet" href="{{ . }}">
         {{ end }}
         {{ if .ssr }}
             {{ raw .ssr.Head }}
