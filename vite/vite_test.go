@@ -15,6 +15,62 @@ const testManifest = `{"resources/js/app.js":{"file":"assets/app-abc123.js","src
 
 const testManifestHash = "71803405f743c7ec4df4ef77602fa504"
 
+const testManifestWithImports = `{
+	"_shared-4Bu55YQl.js": {
+		"file": "assets/shared-4Bu55YQl.js",
+		"name": "shared",
+		"css": [
+			"assets/shared-Dn0TWFOf.css"
+		]
+	},
+	"_shared-Dn0TWFOf.css": {
+		"file": "assets/shared-Dn0TWFOf.css",
+		"src": "_shared-Dn0TWFOf.css"
+	},
+	"resources/css/app.css": {
+		"file": "assets/app-W1erjkBN.css",
+		"name": "app",
+		"names": [
+			"app.css"
+		],
+		"src": "resources/css/app.css",
+		"isEntry": true
+	},
+	"resources/js/app.js": {
+		"file": "assets/app-_mEpyO-B.js",
+		"name": "app",
+		"src": "resources/js/app.js",
+		"isEntry": true,
+		"imports": [
+			"_shared-4Bu55YQl.js"
+		],
+		"dynamicImports": [
+			"resources/js/lazy.js"
+		],
+		"css": [
+			"assets/app-W1erjkBN.css"
+		]
+	},
+	"resources/js/lazy.js": {
+		"file": "assets/lazy-CxGDFGtv.js",
+		"name": "lazy",
+		"src": "resources/js/lazy.js",
+		"isDynamicEntry": true,
+		"imports": [
+			"_shared-4Bu55YQl.js"
+		]
+	},
+	"resources/js/second.js": {
+		"file": "assets/second-zqNUbXCm.js",
+		"name": "second",
+		"src": "resources/js/second.js",
+		"isEntry": true,
+		"imports": [
+			"_shared-4Bu55YQl.js"
+		]
+	}
+}`
+
 const testHotContent = "http://localhost:5173"
 
 func createTempPublicDir(t *testing.T, hot bool, manifest bool) string {
@@ -46,6 +102,14 @@ func createTempPublicDir(t *testing.T, hot bool, manifest bool) string {
 	return dir
 }
 
+func createViteWithManifest(t *testing.T, manifest string) *Vite {
+	t.Helper()
+
+	return New(t.TempDir(), "build", fstest.MapFS{
+		"build/manifest.json": &fstest.MapFile{Data: []byte(manifest)},
+	})
+}
+
 func TestIsRunningHot(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -70,14 +134,14 @@ func TestIsRunningHot(t *testing.T) {
 }
 
 func TestIsRunningHotWithUnreachableHotFile(t *testing.T) {
-	dir := filepath.Join(t.TempDir(), "public")
+	publicPath := filepath.Join(t.TempDir(), "public")
 
-	err := os.WriteFile(dir, []byte("not a directory"), 0644)
+	err := os.WriteFile(publicPath, []byte("not a directory"), 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	v := New(dir, "build")
+	v := New(publicPath, "build")
 
 	if v.IsRunningHot() {
 		t.Error("expected not hot when the hot file path is unreachable")
@@ -104,11 +168,12 @@ func TestManifestHash(t *testing.T) {
 		name      string
 		hot       bool
 		manifest  bool
+		expected  string
 		expectErr error
 	}{
-		{"With Manifest", false, true, nil},
-		{"Hot Returns Empty", true, false, nil},
-		{"No Manifest", false, false, ErrManifestNotExist},
+		{"With Manifest", false, true, testManifestHash, nil},
+		{"Hot Returns Empty", true, false, "", nil},
+		{"No Manifest", false, false, "", ErrManifestNotExist},
 	}
 
 	for _, tt := range tests {
@@ -121,40 +186,22 @@ func TestManifestHash(t *testing.T) {
 				t.Errorf("expected error: %v, got: %v", tt.expectErr, err)
 			}
 
-			if tt.hot && hash != "" {
-				t.Errorf("expected empty hash, got: %v", hash)
-			}
-
-			if tt.manifest && !tt.hot && hash == "" {
-				t.Error("expected non-empty hash")
+			if tt.expected != hash {
+				t.Errorf("expected: %v, got: %v", tt.expected, hash)
 			}
 		})
 	}
 }
 
-func TestManifestHashMatchesContent(t *testing.T) {
-	dir := createTempPublicDir(t, false, true)
-	v := New(dir, "build")
-
-	got, err := v.ManifestHash()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if testManifestHash != got {
-		t.Errorf("expected: %v, got: %v", testManifestHash, got)
-	}
-}
-
 func TestManifestHashWithUnreachableManifest(t *testing.T) {
-	dir := filepath.Join(t.TempDir(), "public")
+	publicPath := filepath.Join(t.TempDir(), "public")
 
-	err := os.WriteFile(dir, []byte("not a directory"), 0644)
+	err := os.WriteFile(publicPath, []byte("not a directory"), 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	v := New(dir, "build")
+	v := New(publicPath, "build")
 
 	_, err = v.ManifestHash()
 	if err == nil {
@@ -170,10 +217,11 @@ func TestManifestHashWithFS(t *testing.T) {
 	tests := []struct {
 		name      string
 		manifest  bool
+		expected  string
 		expectErr error
 	}{
-		{"With Manifest", true, nil},
-		{"No Manifest", false, ErrManifestNotExist},
+		{"With Manifest", true, testManifestHash, nil},
+		{"No Manifest", false, "", ErrManifestNotExist},
 	}
 
 	for _, tt := range tests {
@@ -194,8 +242,8 @@ func TestManifestHashWithFS(t *testing.T) {
 				t.Errorf("expected error: %v, got: %v", tt.expectErr, err)
 			}
 
-			if tt.manifest && hash == "" {
-				t.Error("expected non-empty hash")
+			if tt.expected != hash {
+				t.Errorf("expected: %v, got: %v", tt.expected, hash)
 			}
 		})
 	}
@@ -308,6 +356,11 @@ func TestAssetNotExist(t *testing.T) {
 	if !errors.Is(err, ErrAssetNotExist) {
 		t.Errorf("expected: %v, got: %v", ErrAssetNotExist, err)
 	}
+
+	_, err = v.Preload("resources/js/missing.js")
+	if !errors.Is(err, ErrAssetNotExist) {
+		t.Errorf("expected: %v, got: %v", ErrAssetNotExist, err)
+	}
 }
 
 func TestInertiaSSRURL(t *testing.T) {
@@ -358,19 +411,13 @@ func TestCSS(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if tt.expected == nil && got != nil {
-				t.Errorf("expected nil, got: %v", got)
+			if len(tt.expected) != len(got) {
+				t.Fatalf("expected: %v, got: %v", tt.expected, got)
 			}
 
-			if tt.expected != nil {
-				if len(tt.expected) != len(got) {
-					t.Errorf("expected: %v, got: %v", tt.expected, got)
-				} else {
-					for i, css := range tt.expected {
-						if css != got[i] {
-							t.Errorf("expected: %v, got: %v", css, got[i])
-						}
-					}
+			for i, css := range tt.expected {
+				if css != got[i] {
+					t.Errorf("expected: %v, got: %v", css, got[i])
 				}
 			}
 		})
@@ -394,78 +441,14 @@ func TestCSSWithFS(t *testing.T) {
 
 	expected := []string{"/build/assets/app-def456.css"}
 	if len(expected) != len(got) {
-		t.Errorf("expected: %v, got: %v", expected, got)
-	} else {
-		for i, css := range expected {
-			if css != got[i] {
-				t.Errorf("expected: %v, got: %v", css, got[i])
-			}
+		t.Fatalf("expected: %v, got: %v", expected, got)
+	}
+
+	for i, css := range expected {
+		if css != got[i] {
+			t.Errorf("expected: %v, got: %v", css, got[i])
 		}
 	}
-}
-
-const testManifestWithImports = `{
-		"_shared-4Bu55YQl.js": {
-			"file": "assets/shared-4Bu55YQl.js",
-			"name": "shared",
-			"css": [
-				"assets/shared-Dn0TWFOf.css"
-			]
-		},
-		"_shared-Dn0TWFOf.css": {
-			"file": "assets/shared-Dn0TWFOf.css",
-			"src": "_shared-Dn0TWFOf.css"
-		},
-		"resources/css/app.css": {
-			"file": "assets/app-W1erjkBN.css",
-			"name": "app",
-			"names": [
-				"app.css"
-			],
-			"src": "resources/css/app.css",
-			"isEntry": true
-		},
-		"resources/js/app.js": {
-			"file": "assets/app-_mEpyO-B.js",
-			"name": "app",
-			"src": "resources/js/app.js",
-			"isEntry": true,
-			"imports": [
-				"_shared-4Bu55YQl.js"
-			],
-			"dynamicImports": [
-				"resources/js/lazy.js"
-			],
-			"css": [
-				"assets/app-W1erjkBN.css"
-			]
-		},
-		"resources/js/lazy.js": {
-			"file": "assets/lazy-CxGDFGtv.js",
-			"name": "lazy",
-			"src": "resources/js/lazy.js",
-			"isDynamicEntry": true,
-			"imports": [
-				"_shared-4Bu55YQl.js"
-			]
-		},
-		"resources/js/second.js": {
-			"file": "assets/second-zqNUbXCm.js",
-			"name": "second",
-			"src": "resources/js/second.js",
-			"isEntry": true,
-			"imports": [
-				"_shared-4Bu55YQl.js"
-			]
-		}
-	}`
-
-func createViteWithManifest(t *testing.T, manifest string) *Vite {
-	t.Helper()
-
-	return New(t.TempDir(), "build", fstest.MapFS{
-		"build/manifest.json": &fstest.MapFile{Data: []byte(manifest)},
-	})
 }
 
 func TestCSSWithImports(t *testing.T) {
@@ -513,15 +496,67 @@ func TestCSSWithImports(t *testing.T) {
 	}
 }
 
+func TestPreload(t *testing.T) {
+	tests := []struct {
+		name     string
+		asset    string
+		expected []string
+	}{
+		{
+			"Static Imports Only",
+			"resources/js/app.js",
+			[]string{"/build/assets/shared-4Bu55YQl.js"},
+		},
+		{
+			"No Imports",
+			"resources/css/app.css",
+			nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v := createViteWithManifest(t, testManifestWithImports)
+
+			got, err := v.Preload(tt.asset)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if len(tt.expected) != len(got) {
+				t.Fatalf("expected: %v, got: %v", tt.expected, got)
+			}
+
+			for i, preload := range tt.expected {
+				if preload != got[i] {
+					t.Errorf("expected: %v, got: %v", preload, got[i])
+				}
+			}
+		})
+	}
+}
+
+func TestPreloadWhenHot(t *testing.T) {
+	dir := createTempPublicDir(t, true, false)
+	v := New(dir, "build")
+
+	got, err := v.Preload("resources/js/app.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got != nil {
+		t.Errorf("expected nil, got: %v", got)
+	}
+}
+
 func TestConcurrentManifestAccess(t *testing.T) {
 	v := createViteWithManifest(t, testManifestWithImports)
 
 	var wg sync.WaitGroup
 
 	for range 50 {
-
 		wg.Go(func() {
-
 			asset, err := v.Asset("resources/js/app.js")
 			if err != nil {
 				t.Error(err)

@@ -66,12 +66,12 @@ func (v *Vite) Asset(asset string) (string, error) {
 		return v.hotAsset(asset)
 	}
 
-	_, chunk, err := v.chunk(asset)
+	_, chunk, err := v.manifestChunk(asset)
 	if err != nil {
 		return "", err
 	}
 
-	return path.Join("/", v.buildDirectory, chunk.File), nil
+	return v.assetPath(chunk.File), nil
 }
 
 // InertiaSSRURL function.
@@ -89,7 +89,7 @@ func (v *Vite) CSS(asset string) ([]string, error) {
 		return nil, nil
 	}
 
-	manifest, chunk, err := v.chunk(asset)
+	manifest, chunk, err := v.manifestChunk(asset)
 	if err != nil {
 		return nil, err
 	}
@@ -97,32 +97,40 @@ func (v *Vite) CSS(asset string) ([]string, error) {
 	var css []string
 
 	for _, current := range chunk.Imports {
-		css = v.appendAssets(css, manifest[current].CSS)
+		for _, file := range manifest[current].CSS {
+			css = append(css, v.assetPath(file))
+		}
 	}
 
-	return v.appendAssets(css, chunk.CSS), nil
+	for _, file := range chunk.CSS {
+		css = append(css, v.assetPath(file))
+	}
+
+	return css, nil
 }
 
-func (v *Vite) chunk(asset string) (Manifest, *ManifestChunk, error) {
-	manifest, err := v.loadManifest()
+// Preload function.
+func (v *Vite) Preload(asset string) ([]string, error) {
+	if v.IsRunningHot() {
+		return nil, nil
+	}
+
+	manifest, chunk, err := v.manifestChunk(asset)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	chunk, ok := manifest[asset]
-	if !ok {
-		return nil, nil, fmt.Errorf("%w: %q", ErrAssetNotExist, asset)
+	var preload []string
+
+	for _, current := range chunk.Imports {
+		preload = append(preload, v.assetPath(manifest[current].File))
 	}
 
-	return manifest, &chunk, nil
+	return preload, nil
 }
 
-func (v *Vite) appendAssets(assets []string, files []string) []string {
-	for _, current := range files {
-		assets = append(assets, path.Join("/", v.buildDirectory, current))
-	}
-
-	return assets
+func (v *Vite) assetPath(file string) string {
+	return path.Join("/", v.buildDirectory, file)
 }
 
 func (v *Vite) hotAsset(asset string) (string, error) {
@@ -136,6 +144,24 @@ func (v *Vite) hotAsset(asset string) (string, error) {
 	return fmt.Sprintf("%s/%s", devServerURL, asset), nil
 }
 
+func (v *Vite) hotFile() string {
+	return filepath.Join(v.publicDirectory, "hot")
+}
+
+func (v *Vite) manifestChunk(asset string) (Manifest, *ManifestChunk, error) {
+	manifest, err := v.loadManifest()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	chunk, ok := manifest[asset]
+	if !ok {
+		return nil, nil, fmt.Errorf("%w: %q", ErrAssetNotExist, asset)
+	}
+
+	return manifest, &chunk, nil
+}
+
 func (v *Vite) loadManifest() (Manifest, error) {
 	v.mu.Lock()
 	defer v.mu.Unlock()
@@ -144,14 +170,15 @@ func (v *Vite) loadManifest() (Manifest, error) {
 		return v.manifest, nil
 	}
 
-	manifestPath := v.manifestPath()
-
+	var manifestPath string
 	var manifestContent []byte
 	var err error
 
 	if v.assetFS != nil {
+		manifestPath = path.Join(v.buildDirectory, "manifest.json")
 		manifestContent, err = fs.ReadFile(v.assetFS, manifestPath)
 	} else {
+		manifestPath = filepath.Join(v.publicDirectory, v.buildDirectory, "manifest.json")
 		manifestContent, err = os.ReadFile(manifestPath)
 	}
 
@@ -174,16 +201,4 @@ func (v *Vite) loadManifest() (Manifest, error) {
 	v.manifestHash = fmt.Sprintf("%x", md5.Sum(manifestContent))
 
 	return manifest, nil
-}
-
-func (v *Vite) hotFile() string {
-	return filepath.Join(v.publicDirectory, "hot")
-}
-
-func (v *Vite) manifestPath() string {
-	if v.assetFS != nil {
-		return path.Join(v.buildDirectory, "manifest.json")
-	}
-
-	return filepath.Join(v.publicDirectory, v.buildDirectory, "manifest.json")
 }
