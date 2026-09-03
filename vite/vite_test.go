@@ -9,11 +9,11 @@ import (
 	"sync"
 	"testing"
 	"testing/fstest"
-
-	"github.com/petaki/support-go/file"
 )
 
 const testManifest = `{"resources/js/app.js":{"file":"assets/app-abc123.js","src":"resources/js/app.js","isEntry":true,"css":["assets/app-def456.css"]}}`
+
+const testManifestHash = "71803405f743c7ec4df4ef77602fa504"
 
 const testHotContent = "http://localhost:5173"
 
@@ -141,9 +141,8 @@ func TestManifestHashMatchesContent(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := file.HashFromContent([]byte(testManifest))
-	if expected != got {
-		t.Errorf("expected: %v, got: %v", expected, got)
+	if testManifestHash != got {
+		t.Errorf("expected: %v, got: %v", testManifestHash, got)
 	}
 }
 
