@@ -18,7 +18,6 @@ go get github.com/petaki/support-go
 ## Packages
 
 - [CLI](#cli) - Framework for building command-line applications
-- [File](#file) - File hashing utilities
 - [Forms](#forms) - Form validation and JSON body decoding
 - [Vite](#vite) - Vite asset management and HMR integration
 
@@ -110,23 +109,6 @@ Pre-configured loggers with colored prefixes:
 ```go
 cli.InfoLog.Println("server started")  // cyan "INFO" prefix
 cli.ErrorLog.Println("connection lost") // red "ERROR" prefix
-```
-
-## File
-
-The `file` package provides MD5 hash computation for files and in-memory content.
-
-```go
-import "github.com/petaki/support-go/file"
-
-// Hash a file on disk
-hash, err := file.Hash("/path/to/file.txt")
-
-// Hash a file from an fs.FS
-hash, err := file.HashFromFS("static/app.js", embeddedFS)
-
-// Hash content that has already been read
-hash := file.HashFromContent(content)
 ```
 
 ## Forms

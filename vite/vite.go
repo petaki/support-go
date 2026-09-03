@@ -1,6 +1,7 @@
 package vite
 
 import (
+	"crypto/md5"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,8 +11,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-
-	"github.com/petaki/support-go/file"
 )
 
 // Vite type.
@@ -172,7 +171,7 @@ func (v *Vite) loadManifest() (Manifest, error) {
 	}
 
 	v.manifest = manifest
-	v.manifestHash = file.HashFromContent(manifestContent)
+	v.manifestHash = fmt.Sprintf("%x", md5.Sum(manifestContent))
 
 	return manifest, nil
 }
