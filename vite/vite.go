@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 )
@@ -98,12 +99,12 @@ func (v *Vite) CSS(asset string) ([]string, error) {
 
 	for _, current := range chunk.Imports {
 		for _, file := range manifest[current].CSS {
-			css = append(css, v.assetPath(file))
+			css = v.appendAsset(css, file)
 		}
 	}
 
 	for _, file := range chunk.CSS {
-		css = append(css, v.assetPath(file))
+		css = v.appendAsset(css, file)
 	}
 
 	return css, nil
@@ -127,6 +128,16 @@ func (v *Vite) Preload(asset string) ([]string, error) {
 	}
 
 	return preload, nil
+}
+
+func (v *Vite) appendAsset(assets []string, file string) []string {
+	asset := v.assetPath(file)
+
+	if slices.Contains(assets, asset) {
+		return assets
+	}
+
+	return append(assets, asset)
 }
 
 func (v *Vite) assetPath(file string) string {

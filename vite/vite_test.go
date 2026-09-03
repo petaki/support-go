@@ -470,6 +470,40 @@ func TestCSSWithImports(t *testing.T) {
 	}
 }
 
+func TestCSSDeduplicates(t *testing.T) {
+	manifest := `{
+	"_shared.js": {
+		"file": "assets/shared.js",
+		"css": [
+			"assets/shared.css"
+		]
+	},
+	"app.js": {
+		"file": "assets/app.js",
+		"isEntry": true,
+		"imports": [
+			"_shared.js"
+		],
+		"css": [
+			"assets/shared.css",
+			"assets/app.css"
+		]
+	}
+}`
+
+	v := createViteWithManifest(t, manifest)
+
+	got, err := v.CSS("app.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := []string{"/build/assets/shared.css", "/build/assets/app.css"}
+	if !slices.Equal(expected, got) {
+		t.Errorf("expected: %v, got: %v", expected, got)
+	}
+}
+
 func TestPreload(t *testing.T) {
 	tests := []struct {
 		name     string
