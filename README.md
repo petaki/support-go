@@ -188,6 +188,7 @@ if v.IsRunningHot() {
 // Resolve asset paths
 jsPath, err := v.Asset("resources/js/app.js")
 cssFiles, err := v.CSS("resources/js/app.js")
+preloadFiles, err := v.Preload("resources/js/app.js")
 
 // Get manifest hash for cache busting
 hash, err := v.ManifestHash()
@@ -223,6 +224,7 @@ inertiaManager := inertia.New(appURL, "app.gohtml", version, templates)
 inertiaManager.ShareFunc("isRunningHot", viteManager.IsRunningHot)
 inertiaManager.ShareFunc("asset", viteManager.Asset)
 inertiaManager.ShareFunc("css", viteManager.CSS)
+inertiaManager.ShareFunc("preload", viteManager.Preload)
 
 // Enable SSR
 ssrURL, err := viteManager.InertiaSSRURL("http://127.0.0.1:13714/render")
@@ -239,6 +241,9 @@ The root template (`app.gohtml`) uses the shared Vite functions:
         <meta name="viewport" content="width=device-width, initial-scale=1">
         {{ range (css "resources/js/app.ts") }}
             <link rel="stylesheet" href="{{ . }}">
+        {{ end }}
+        {{ range (preload "resources/js/app.ts") }}
+            <link rel="modulepreload" href="{{ . }}">
         {{ end }}
         {{ if .ssr }}
             {{ raw .ssr.Head }}
