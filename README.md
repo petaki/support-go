@@ -20,6 +20,7 @@ go get github.com/petaki/support-go
 - [CLI](#cli) - Framework for building command-line applications
 - [Forms](#forms) - Form validation and JSON body decoding
 - [Vite](#vite) - Vite asset management and HMR integration
+- [Web](#web) - HTTP server, graceful shutdown, panic recovery and static files
 
 ## CLI
 
@@ -70,6 +71,27 @@ func main() {
 ```
 
 Commands support flags via `command.FlagSet()`, which returns a standard `*flag.FlagSet`.
+
+### Flags with Env Fallback
+
+Typed flags read their default from an env var, so no casting is needed:
+
+```go
+addr := command.String("addr", "APP_ADDR", ":4000", "Application Address")
+limit := command.Int("history-limit", "HISTORY_LIMIT", 100, "History Limit")
+debug := command.Bool("debug", "APP_DEBUG", false, "Application Debug Mode")
+key := command.Secret("key", "APP_KEY", "Application Key")
+
+_, err := command.Parse(arguments)
+if err != nil {
+    return command.PrintErrorWithHelp(group, err)
+}
+```
+
+- A flag on the command line wins over the env var, which wins over the default.
+- An env value that does not convert returns `cli.ErrInvalidEnvValue` from `Parse`.
+- `Secret` values never appear in the help output.
+- `PrintErrorWithHelp` prints the error and the usage and returns `cli.Failure`.
 
 ### Colors
 
@@ -139,13 +161,13 @@ if !form.IsValid() {
 
 ### JSON Body Decoding
 
-Decode JSON request bodies with detailed error handling (bad JSON, unknown fields, size limit of 1MB):
+Decode JSON request bodies with detailed error handling (bad JSON, invalid field types, empty body, size limit of 1MB):
 
 ```go
 func handler(w http.ResponseWriter, r *http.Request) {
     form, err := forms.NewFromRequest(w, r)
     if err != nil {
-        // err is *forms.Error with Status and Msg
+        // err is *forms.Error with Status and Msg, any other error is a server error
     }
 
     form.Required("name")
@@ -219,12 +241,12 @@ if debug {
 // Use manifest hash as Inertia asset version
 version, err := viteManager.ManifestHash()
 
-// Set up Inertia with shared Vite helpers
+// Set up Inertia with shared Vite helpers (isRunningHot, asset, css, preload)
 inertiaManager := inertia.New(appURL, "app.gohtml", version, templates)
-inertiaManager.ShareFunc("isRunningHot", viteManager.IsRunningHot)
-inertiaManager.ShareFunc("asset", viteManager.Asset)
-inertiaManager.ShareFunc("css", viteManager.CSS)
-inertiaManager.ShareFunc("preload", viteManager.Preload)
+
+for name, helper := range viteManager.Helpers() {
+    inertiaManager.ShareFunc(name, helper)
+}
 
 // Enable SSR
 ssrURL, err := viteManager.InertiaSSRURL("http://127.0.0.1:13714/render")
@@ -263,6 +285,35 @@ The root template (`app.gohtml`) uses the shared Vite functions:
     </body>
 </html>
 ```
+
+## Web
+
+The `web` package provides the HTTP scaffolding shared by web apps:
+
+```go
+import "github.com/petaki/support-go/web"
+
+mux := http.NewServeMux()
+mux.Handle("/build/", web.Static(debug, "./static/", staticFiles))
+mux.Handle("/favicon.ico", web.Static(debug, "./static/", staticFiles))
+
+handler := web.RecoverPanic(func(w http.ResponseWriter, r *http.Request, err error) {
+    http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+})(mux)
+
+ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+defer stop()
+
+server := web.NewServer(":4000", handler, cli.ErrorLog)
+
+err := server.RunAndShutdown(ctx, 10*time.Second)
+```
+
+- `NewServer` sets the idle, read and write timeouts (1m, 5s, 10s).
+- `Run` returns when the context is done, so you can run your own shutdown steps.
+- `RunAndShutdown` also shuts the server down gracefully within the timeout.
+- `RecoverPanic` re-panics on `http.ErrAbortHandler` and wraps others in `web.ErrPanic`.
+- `Static` serves from disk in debug mode and from the embedded `fs.FS` otherwise.
 
 ## Contributors
 
