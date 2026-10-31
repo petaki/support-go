@@ -131,3 +131,34 @@ func TestCommand_PrintError(t *testing.T) {
 		t.Errorf("expected output to contain: connection refused, got: %v", output)
 	}
 }
+
+func TestCommand_PrintErrorWithHelp(t *testing.T) {
+	command := &Command{
+		Name: "start",
+	}
+
+	group := &Group{
+		Name: "serve",
+	}
+
+	var buf strings.Builder
+
+	oldWriter := ErrorLog.Writer()
+	ErrorLog.SetOutput(&buf)
+	defer ErrorLog.SetOutput(oldWriter)
+
+	output := captureStdout(t, func() {
+		result := command.PrintErrorWithHelp(group, errors.New("connection refused"))
+		if result != Failure {
+			t.Errorf("expected: %v, got: %v", Failure, result)
+		}
+	})
+
+	if !strings.Contains(buf.String(), "connection refused") {
+		t.Errorf("expected error output to contain: connection refused, got: %v", buf.String())
+	}
+
+	if !strings.Contains(output, "serve start") {
+		t.Errorf("expected help output to contain: serve start, got: %v", output)
+	}
+}

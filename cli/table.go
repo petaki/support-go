@@ -3,7 +3,10 @@ package cli
 import (
 	"fmt"
 	"strings"
+	"unicode/utf8"
 )
+
+const emptyText = "No items"
 
 // Table type.
 type Table struct {
@@ -16,15 +19,27 @@ func (t *Table) Create() []string {
 	width := make([]int, len(t.Headers))
 
 	for i, header := range t.Headers {
-		width[i] = len(header)
+		width[i] = utf8.RuneCountInString(header)
 	}
 
 	for _, row := range t.Rows {
-		for i, col := range row {
-			if width[i] < len(col) {
-				width[i] = len(col)
-			}
+		for i, col := range row[:min(len(row), len(width))] {
+			width[i] = max(width[i], utf8.RuneCountInString(col))
 		}
+	}
+
+	if len(t.Rows) == 0 {
+		if len(width) == 0 {
+			width = append(width, 0)
+		}
+
+		total := (len(width) - 1) * 3
+
+		for _, col := range width {
+			total += col
+		}
+
+		width[len(width)-1] += max(len(emptyText)-total, 0)
 	}
 
 	var height int
@@ -94,20 +109,23 @@ func (t *Table) createEmpty(width []int) string {
 	}
 
 	total += (len(width) - 1) * 3
-	text := "No items"
 
-	return "| " + text + strings.Repeat(" ", total-len(text)) + " |"
+	return "| " + emptyText + strings.Repeat(" ", total-len(emptyText)) + " |"
 }
 
 func (t *Table) createRow(row []string, width []int) string {
 	var tr strings.Builder
 
-	for i, col := range row {
-		if i == 0 {
-			tr.WriteString("|")
+	tr.WriteString("|")
+
+	for i := range width {
+		var col string
+
+		if i < len(row) {
+			col = row[i]
 		}
 
-		tr.WriteString(" " + col + strings.Repeat(" ", width[i]-len(col)) + " |")
+		tr.WriteString(" " + col + strings.Repeat(" ", width[i]-utf8.RuneCountInString(col)) + " |")
 	}
 
 	return tr.String()

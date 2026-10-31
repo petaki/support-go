@@ -130,6 +130,16 @@ func (v *Vite) Preload(asset string) ([]string, error) {
 	return preload, nil
 }
 
+// Helpers function.
+func (v *Vite) Helpers() map[string]any {
+	return map[string]any{
+		"isRunningHot": v.IsRunningHot,
+		"asset":        v.Asset,
+		"css":          v.CSS,
+		"preload":      v.Preload,
+	}
+}
+
 func (v *Vite) appendAsset(assets []string, file string) []string {
 	asset := v.assetPath(file)
 
