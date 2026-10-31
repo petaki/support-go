@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"strings"
@@ -13,6 +14,8 @@ type Command struct {
 	Arguments  []string
 	HandleFunc func(group *Group, command *Command, arguments []string) int
 	flagSet    *flag.FlagSet
+	envErrors  []error
+	secrets    map[string]string
 }
 
 // FlagSet function.
@@ -27,6 +30,15 @@ func (c *Command) FlagSet() *flag.FlagSet {
 // Parse function.
 func (c *Command) Parse(arguments []string) ([]string, error) {
 	err := c.FlagSet().Parse(arguments)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(c.envErrors) > 0 {
+		return nil, errors.Join(c.envErrors...)
+	}
+
+	err = c.applySecrets()
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +71,15 @@ func (c *Command) PrintHelp(group *Group) int {
 
 // PrintError function.
 func (c *Command) PrintError(err error) int {
-	ErrorLog.Print(err)
+	ErrorLog.Output(2, fmt.Sprint(err))
+
+	return Failure
+}
+
+// PrintErrorWithHelp function.
+func (c *Command) PrintErrorWithHelp(group *Group, err error) int {
+	ErrorLog.Output(2, fmt.Sprint(err))
+	c.PrintHelp(group)
 
 	return Failure
 }

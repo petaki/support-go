@@ -1,6 +1,9 @@
 package cli
 
-import "testing"
+import (
+	"testing"
+	"unicode/utf8"
+)
 
 func TestTable_Create(t *testing.T) {
 	tests := []struct {
@@ -102,5 +105,34 @@ func TestTable_Create(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestTable_CreateWithWideRowAndUnicode(t *testing.T) {
+	table := &Table{
+		Headers: []string{"Name"},
+		Rows:    [][]string{{"Árvíztűrő", "extra"}},
+	}
+
+	rows := table.Create()
+
+	if utf8.RuneCountInString(rows[0]) != utf8.RuneCountInString(rows[3]) {
+		t.Errorf("expected aligned rows, got: %v and %v", rows[0], rows[3])
+	}
+}
+
+func TestTable_CreateNarrow(t *testing.T) {
+	for _, table := range []*Table{
+		{Headers: []string{"ID"}},
+		{},
+		{Headers: []string{"A", "B"}, Rows: [][]string{{"x"}}},
+	} {
+		rows := table.Create()
+
+		for _, row := range rows {
+			if utf8.RuneCountInString(row) != utf8.RuneCountInString(rows[0]) {
+				t.Errorf("expected aligned rows, got: %q", rows)
+			}
+		}
 	}
 }
