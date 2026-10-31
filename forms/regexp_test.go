@@ -10,12 +10,14 @@ func TestUsernameRegexp(t *testing.T) {
 	}{
 		{"Valid Alphanumeric", "john123", true},
 		{"Valid With Dots", "john.doe", true},
-		{"Valid With Hyphens", "john-doe", false},
+		{"Valid With Hyphens", "john-doe", true},
 		{"Valid With Underscores", "john_doe", true},
 		{"Valid Mixed", "john.doe_123_test", true},
 		{"Empty String", "", false},
 		{"With Spaces", "john doe", false},
 		{"With Special Chars", "john@doe", false},
+		{"With Backslash", "john\\doe", false},
+		{"With Bracket", "john]doe", false},
 	}
 
 	for _, tt := range tests {

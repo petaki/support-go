@@ -53,14 +53,6 @@ func DecodeBody(w http.ResponseWriter, r *http.Request, dst any) error {
 				),
 			}
 
-		case strings.HasPrefix(err.Error(), "json: unknown field "):
-			fieldName := strings.TrimPrefix(err.Error(), "json: unknown field ")
-
-			return &Error{
-				Status: http.StatusBadRequest,
-				Msg:    fmt.Sprintf("Request body contains unknown field %s", fieldName),
-			}
-
 		case errors.Is(err, io.EOF):
 			return &Error{
 				Status: http.StatusBadRequest,

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"unicode/utf8"
 )
 
 // Form type.
@@ -76,7 +77,7 @@ func (f *Form) Min(field string, min float64) {
 			return
 		}
 
-		if float64(len(value)) < min {
+		if float64(utf8.RuneCountInString(value)) < min {
 			f.Errors.Add(field, fmt.Sprintf("The field must be at least %v characters.", min))
 		}
 	}
@@ -98,7 +99,7 @@ func (f *Form) Max(field string, max float64) {
 			return
 		}
 
-		if float64(len(value)) > max {
+		if float64(utf8.RuneCountInString(value)) > max {
 			f.Errors.Add(field, fmt.Sprintf("The field may not be greater than %v characters.", max))
 		}
 	}
