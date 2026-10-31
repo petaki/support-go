@@ -588,3 +588,21 @@ func TestConcurrentManifestAccess(t *testing.T) {
 
 	wg.Wait()
 }
+
+func TestHelpers(t *testing.T) {
+	helpers := New("public", "build").Helpers()
+
+	if len(helpers) != 4 {
+		t.Errorf("expected: 4 helpers, got: %v", len(helpers))
+	}
+
+	for _, name := range []string{"isRunningHot", "asset", "css", "preload"} {
+		if _, ok := helpers[name]; !ok {
+			t.Errorf("expected helper: %v", name)
+		}
+	}
+
+	if _, ok := helpers["asset"].(func(string) (string, error)); !ok {
+		t.Errorf("expected asset helper to be func(string) (string, error), got: %T", helpers["asset"])
+	}
+}
